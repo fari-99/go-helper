@@ -59,6 +59,8 @@ type Passwords struct {
 }
 
 // GeneratePassword generates bcrypt hash string of the given plaintext password
+// because generate password is by using bcrypt, to check hash and password,
+// please use bycrypt CompareHashAndPassword
 func GeneratePassword(password Passwords, passwordCost int8) (hash *string, err error) {
 	userInput := []string{password.Username, password.Email}
 	secret := password.Password
@@ -66,6 +68,10 @@ func GeneratePassword(password Passwords, passwordCost int8) (hash *string, err 
 	checkPassword := zxcvbn.PasswordStrength(secret, userInput)
 	if checkPassword.Score <= 2 {
 		return nil, fmt.Errorf("your password not good enough, please try again")
+	}
+
+	if passwordCost < 15 { // minimum cost is 15 (default bycrypt minimum is 4)
+		return nil, fmt.Errorf("password cost need to be more or equal than 15")
 	}
 
 	hashedPasswordByte, err := bcrypt.GenerateFromPassword([]byte(secret), int(passwordCost))
@@ -81,6 +87,7 @@ const timeSeconds = "seconds"
 const timeMinutes = "minutes"
 const timeHours = "hours"
 const timeDays = "days"
+const timeWeeks = "weeks"
 const timeMonths = "months"
 const timeYears = "years"
 
@@ -94,6 +101,9 @@ func AddTime(yourTime time.Time, addedTime int64, timeType string) (resultTime t
 	case timeHours:
 		resultTime = yourTime.Add(time.Hour * time.Duration(addedTime))
 	case timeDays:
+		resultTime = yourTime.AddDate(0, 0, int(addedTime))
+	case timeWeeks:
+		addedTime = addedTime * 7 // 1 week = 7 days
 		resultTime = yourTime.AddDate(0, 0, int(addedTime))
 	case timeMonths:
 		resultTime = yourTime.AddDate(0, int(addedTime), 0)
