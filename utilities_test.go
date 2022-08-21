@@ -15,90 +15,142 @@ type TestStruct struct {
 
 func TestInArray(t *testing.T) {
 	t.Run("testing Int", testInt)
+	t.Run("testing Uint", testUint)
 	t.Run("testing Float", testFloat)
+	t.Run("testing Complex", testComplex)
+	t.Run("testing String", testString)
+	t.Run("testing Uintptr", testUintptr)
 	t.Run("testing Struct", testStruct)
 }
 
 func testInt(t *testing.T) {
 	// simple int exists
-	var haystackIntArray = []any{int(0), int(1), int(2), int(3), int(4), int(5)}
-	var needleIntArray int = 3
+	var haystack = []int{0, 1, 2, 3, 4, 5}
+	var needle int = 3
 
-	isExistsIntArray, _, _ := InArray(needleIntArray, haystackIntArray)
+	isExistsIntArray, _, _ := InArray(haystack, needle)
 	if !isExistsIntArray {
 		t.Log("can't find that int value")
 		t.FailNow()
 	}
 
 	// simple int not exists
-	haystackIntArray = []any{int(0), int(1), int(2), int(3), int(4), int(5)}
-	needleIntArray = 6
+	haystack = []int{0, 1, 2, 3, 4, 5}
+	needle = 6
 
-	isExistsIntArray, _, _ = InArray(needleIntArray, haystackIntArray)
+	isExistsIntArray, _, _ = InArray(haystack, needle)
 	if isExistsIntArray {
 		t.Log("shouldn't have find that int value")
 		t.FailNow()
 	}
+}
 
-	// simple int64 exists
-	var haystackInt64Array = []any{int64(0), int64(1), int64(2), int64(3), int64(4), int64(5)}
-	var needleInt64Array int64 = 3
+func testUint(t *testing.T) {
+	// simple uint exists
+	var haystack = []uint{0, 1, 2, 3, 4, 5}
+	var needle uint = 3
 
-	isExistsInt64Array, _, _ := InArray(needleInt64Array, haystackInt64Array)
-	if !isExistsInt64Array {
-		t.Log("can't find that int64 value")
+	isExistsIntArray, _, _ := InArray(haystack, needle)
+	if !isExistsIntArray {
+		t.Log("can't find that uint value")
 		t.FailNow()
 	}
 
-	// simple int int64 exists
-	haystackInt64Array = []any{int64(0), int64(1), int64(2), int64(3), int64(4), int64(5)}
-	needleInt64Array = 6
+	// simple uint not exists
+	haystack = []uint{0, 1, 2, 3, 4, 5}
+	needle = 6
 
-	isExistsInt64Array, _, _ = InArray(needleInt64Array, haystackInt64Array)
-	if isExistsInt64Array {
-		t.Log("shouldn't have find that int64 value")
+	isExistsIntArray, _, _ = InArray(haystack, needle)
+	if isExistsIntArray {
+		t.Log("shouldn't have find that uint value")
 		t.FailNow()
 	}
 }
 
 func testFloat(t *testing.T) {
 	// simple float32 exists
-	var haystackFloat32Array = []any{float32(0), float32(1), float32(2), float32(3), float32(4), float32(5)}
-	var needleFloat32Array float32 = 3
+	var haystack = []float32{0, 1, 2, 3, 4, 5}
+	var needle float32 = 3
 
-	isExistsFloat32Array, _, _ := InArray(needleFloat32Array, haystackFloat32Array)
-	if !isExistsFloat32Array {
-		t.Log("can't find that Float32 value")
+	isExistsIntArray, _, _ := InArray(haystack, needle)
+	if !isExistsIntArray {
+		t.Log("can't find that float32 value")
 		t.FailNow()
 	}
 
 	// simple float32 not exists
-	haystackFloat32Array = []any{float32(0), float32(1), float32(2), float32(3), float32(4), float32(5)}
-	needleFloat32Array = float32(6)
+	haystack = []float32{0, 1, 2, 3, 4, 5}
+	needle = 6
 
-	isExistsFloat32Array, _, _ = InArray(needleFloat32Array, haystackFloat32Array)
-	if isExistsFloat32Array {
-		t.Log("shouldn't have find that Float32 value")
+	isExistsIntArray, _, _ = InArray(haystack, needle)
+	if isExistsIntArray {
+		t.Log("shouldn't have find that float32 value")
+		t.FailNow()
+	}
+}
+
+func testComplex(t *testing.T) {
+	// simple complex64 exists
+	var haystack = []complex64{0, 1, 2, 3, 4, 5}
+	var needle complex64 = 3
+
+	isExistsIntArray, _, _ := InArray(haystack, needle)
+	if !isExistsIntArray {
+		t.Log("can't find that complex64 value")
 		t.FailNow()
 	}
 
-	// simple float64 exists
-	var haystackFloat64Array = []any{float64(0), float64(1), float64(2), float64(3), float64(4), float64(5)}
-	var needleFloat64Array float64 = float64(3)
+	// simple int complex64 exists
+	haystack = []complex64{0, 1, 2, 3, 4, 5}
+	needle = 6
 
-	isExistsFloat64Array, _, _ := InArray(needleFloat64Array, haystackFloat64Array)
-	if !isExistsFloat64Array {
-		t.Log("can't find that Float64 value")
+	isExistsIntArray, _, _ = InArray(haystack, needle)
+	if isExistsIntArray {
+		t.Log("shouldn't have find that complex64 value")
+		t.FailNow()
+	}
+}
+
+func testString(t *testing.T) {
+	// simple string exists
+	var haystack = []string{"0", "1", "2", "3", "4", "5"}
+	var needle string = "3"
+
+	isExistsIntArray, _, _ := InArray(haystack, needle)
+	if !isExistsIntArray {
+		t.Log("can't find that string value")
 		t.FailNow()
 	}
 
-	// simple float64 exists
-	haystackFloat64Array = []any{float64(0), float64(1), float64(2), float64(3), float64(4), float64(5)}
-	needleFloat64Array = float64(6)
+	// simple int string exists
+	haystack = []string{"0", "1", "2", "3", "4", "5"}
+	needle = "6"
 
-	isExistsFloat64Array, _, _ = InArray(needleFloat64Array, haystackFloat64Array)
-	if isExistsFloat64Array {
-		t.Log("shouldn't have find that Float64 value")
+	isExistsIntArray, _, _ = InArray(haystack, needle)
+	if isExistsIntArray {
+		t.Log("shouldn't have find that string value")
+		t.FailNow()
+	}
+}
+
+func testUintptr(t *testing.T) {
+	// simple uintptr exists
+	var haystack = []uintptr{0, 1, 2, 3, 4, 5}
+	var needle uintptr = 3
+
+	isExistsIntArray, _, _ := InArray(haystack, needle)
+	if !isExistsIntArray {
+		t.Log("can't find that uintptr value")
+		t.FailNow()
+	}
+
+	// simple int uintptr exists
+	haystack = []uintptr{0, 1, 2, 3, 4, 5}
+	needle = 6
+
+	isExistsIntArray, _, _ = InArray(haystack, needle)
+	if isExistsIntArray {
+		t.Log("shouldn't have find that uintptr value")
 		t.FailNow()
 	}
 }
@@ -122,7 +174,7 @@ func testStruct(t *testing.T) {
 	}
 
 	idxExists := slices.IndexFunc(haystackStruct, needleExistsFunction)
-	isExistsStruct, idxExistsStruct, _ := InArray(needleExistsFunction, haystackStruct)
+	isExistsStruct, idxExistsStruct, _ := InArrayComplex(haystackStruct, needleExistsFunction)
 	if !isExistsStruct {
 		t.Log("can't find that value")
 		t.Fail()
@@ -142,7 +194,7 @@ func testStruct(t *testing.T) {
 	}
 
 	idxNotExists := slices.IndexFunc(haystackStruct, needleNotExistsFunction)
-	isNotExistsStruct, idxNotExistsStruct, _ := InArray(needleNotExistsFunction, haystackStruct)
+	isNotExistsStruct, idxNotExistsStruct, _ := InArrayComplex(haystackStruct, needleNotExistsFunction)
 	if isNotExistsStruct {
 		t.Log("shouldn't find the value in the struct")
 		t.Fail()

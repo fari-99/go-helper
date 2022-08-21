@@ -10,10 +10,29 @@ import (
 	"golang.org/x/exp/slices"
 )
 
+type ArrayType interface {
+	int | int8 | int16 | int32 | int64 |
+		uint | uint8 | uint16 | uint32 | uint64 |
+		float32 | float64 |
+		complex64 | complex128 |
+		string |
+		uintptr
+}
+
+func InArray[T ArrayType](haystack []T, needle T) (bool, int, error) {
+	for idx, value := range haystack {
+		if reflect.DeepEqual(value, needle) {
+			return true, idx, nil
+		}
+	}
+
+	return false, -1, nil
+}
+
 // InArray checks whether needle is in haystack.
 // if haystack is an array of struck, then needle need to be a function
 // example : https://stackoverflow.com/questions/38654383/how-to-search-for-an-element-in-a-golang-slice
-func InArray(needle any, haystack []any) (bool, int, error) {
+func InArrayComplex(haystack []any, needle any) (bool, int, error) {
 	haystackValue := reflect.ValueOf(haystack)
 	checkData := haystackValue.Index(0)
 	checkDataKind := reflect.ValueOf(checkData).Kind()
