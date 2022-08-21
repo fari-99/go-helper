@@ -2,6 +2,7 @@ package gohelper
 
 import (
 	"encoding/json"
+	"log"
 	"testing"
 	"time"
 
@@ -255,6 +256,10 @@ const unixTime int64 = 1661009671 // 20 Aug 22 22:34:31
 const formatDate string = "02 Jan 06 15:04:05"
 
 func TestAddTime(t *testing.T) {
+	log.Printf("unix time: %d", unixTime)
+	log.Printf("format date: %s", formatDate)
+	log.Printf("date: %s", time.Unix(unixTime, 0).Format(formatDate))
+
 	t.Run("test adding/subtracting time -second-:", testAddTimeSecond)
 	t.Run("test adding/subtracting time -minutes-:", testAddTimeMinutes)
 	t.Run("test adding/subtracting time -hours-:", testAddTimeHours)
