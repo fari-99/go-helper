@@ -96,6 +96,11 @@ func (helper *HelperFtp) SendFile(file interface{}) error {
 		case DefaultSFTPPort:
 			return helper.sftp(file)
 		default:
+			if ftpPort <= 0 {
+				return fmt.Errorf("ftp port is invalid")
+			}
+
+			// using costum ports
 			if !helper.isSsh {
 				return helper.ftp(file)
 			} else {
