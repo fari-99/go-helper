@@ -16,8 +16,8 @@ import (
 )
 
 func (base *StorageBase) s3Session() (sessionConfig *session.Session, err error) {
-    awsAccessKey := aws.String(os.Getenv("S3_ACCESS_KEY"))
-    awsSecretKey := aws.String(os.Getenv("S3_SECRET_KEY"))
+    awsAccessKey := aws.String(base.s3Enabled.AccessKey)
+    awsSecretKey := aws.String(base.s3Enabled.SecretKey)
     token := ""
 
     credential := credentials.NewStaticCredentials(*awsAccessKey, *awsSecretKey, token)
@@ -28,7 +28,7 @@ func (base *StorageBase) s3Session() (sessionConfig *session.Session, err error)
     }
 
     cfg := aws.NewConfig().
-        WithRegion(os.Getenv("S3_REGION")).
+        WithRegion(base.s3Enabled.Region).
         WithCredentials(credential)
 
     sessionCfg, err := session.NewSession(cfg)
@@ -78,7 +78,7 @@ func (base *StorageBase) s3Upload(contentTypeData FileData, scaled int, file mul
     }
 
     params := &s3manager.UploadInput{
-        Bucket:      aws.String(os.Getenv("S3_BUCKET")),
+        Bucket:      aws.String(base.s3Enabled.BucketName),
         Key:         aws.String(contentTypeData.StoragePath + contentTypeData.Filename),
         Body:        fileTemp,
         ContentType: aws.String(contentTypeData.ContentType),
@@ -106,9 +106,9 @@ func (base *StorageBase) s3GetFile(storageType, storagePath, filename string) (f
         return nil, fmt.Errorf("failed to create temp file, err := %s", err.Error())
     }
 
-    filePath := os.Getenv("STORAGE_PATH") + "/" + storageType + storagePath + filename
+    filePath := base.s3Enabled.FilePath + "/" + storageType + storagePath + filename
     _, err = downloader.Download(fileTemp, &s3.GetObjectInput{
-        Bucket: aws.String(os.Getenv("S3_BUCKET")),
+        Bucket: aws.String(base.s3Enabled.BucketName),
         Key:    aws.String(filePath),
     })
     if err != nil {

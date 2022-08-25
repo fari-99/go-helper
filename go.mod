@@ -5,10 +5,13 @@ go 1.18
 require (
 	cloud.google.com/go/storage v1.25.0
 	github.com/aws/aws-sdk-go v1.44.83
+	github.com/jlaffaye/ftp v0.0.0-20220821212529-0aeb8660a7e2
 	github.com/joho/godotenv v1.4.0
+	github.com/nbutton23/zxcvbn-go v0.0.0-20210217022336-fa2cb2858354
 	github.com/pkg/sftp v1.13.5
 	github.com/spf13/cast v1.5.0
-	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e
+	golang.org/x/crypto v0.0.0-20220817201139-bc19a97f63c8
+	golang.org/x/exp v0.0.0-20220823124025-807a23277127
 )
 
 require (
@@ -28,7 +31,7 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/net v0.0.0-20220624214902-1bab6f366d9e // indirect
 	golang.org/x/oauth2 v0.0.0-20220622183110-fd043fe589d2 // indirect
-	golang.org/x/sys v0.0.0-20220624220833-87e55d714810 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/api v0.88.0 // indirect
@@ -36,10 +39,4 @@ require (
 	google.golang.org/genproto v0.0.0-20220720214146-176da50484ac // indirect
 	google.golang.org/grpc v1.48.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
-)
-
-require (
-	github.com/jlaffaye/ftp v0.0.0-20220818164422-4d1d644cf19d
-	github.com/nbutton23/zxcvbn-go v0.0.0-20210217022336-fa2cb2858354
-	golang.org/x/crypto v0.0.0-20220817201139-bc19a97f63c8
 )

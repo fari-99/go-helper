@@ -12,7 +12,7 @@ import (
     "path"
     "strings"
 
-    "github.com/spf13/cast"
+    gohelper "github.com/fari-99/go-helper"
 )
 
 type FileData struct {
@@ -27,9 +27,15 @@ type FileData struct {
 type StorageBase struct {
     fileInput *multipart.FileHeader
     fileType  string
+    localPath string
 
-    s3Enabled  bool
-    gcsEnabled bool
+    // NonScaledTypes
+    // if images not in this type, then file will be scaled
+    // if images in this type, then file will not be scaled
+    NonScaledTypes string
+
+    s3Enabled  *S3Setup
+    gcsEnabled *GCSSetup
 }
 
 type StorageData struct {
@@ -40,18 +46,70 @@ type StorageData struct {
     OriginalFilename string `json:"original_filename"`
 }
 
-func NewStorageBase(fileHeader *multipart.FileHeader, fileType string) *StorageBase {
-    s3Enable := cast.ToBool(os.Getenv("S3_ENABLE"))
-    gcsEnable := cast.ToBool(os.Getenv("GCS_ENABLED"))
+type S3Setup struct {
+    FilePath   string
+    BucketName string
+    AccessKey  string
+    SecretKey  string
+    Region     string
+}
 
+type GCSSetup struct {
+    FilePath       string
+    ProjectID      string
+    BucketName     string
+    Region         string
+    TimeOut        string
+    CredentialPath string
+}
+
+func NewStorageBase(fileHeader *multipart.FileHeader, fileType string) *StorageBase {
+    // default use local
     storageBase := &StorageBase{
         fileInput:  fileHeader,
         fileType:   fileType,
-        s3Enabled:  s3Enable,
-        gcsEnabled: gcsEnable,
+        localPath:  os.Getenv("LOCAL_STORAGE_PATH"),
+        s3Enabled:  nil,
+        gcsEnabled: nil,
     }
 
     return storageBase
+}
+
+func (base *StorageBase) setNonScaledType(nonScaledTypes []string) *StorageBase {
+    base.NonScaledTypes = strings.Join(nonScaledTypes, ",")
+    return base
+}
+
+func (base *StorageBase) SetAwsS3(s3Setup *S3Setup) *StorageBase {
+    if s3Setup == nil {
+        s3Setup = &S3Setup{
+            FilePath:   os.Getenv("S3_STORAGE_PATH"),
+            BucketName: os.Getenv("S3_BUCKET"),
+            AccessKey:  os.Getenv("S3_ACCESS_KEY"),
+            SecretKey:  os.Getenv("S3_SECRET_KEY"),
+            Region:     os.Getenv("S3_REGION"),
+        }
+    }
+
+    base.s3Enabled = s3Setup
+    return base
+}
+
+func (base *StorageBase) SetGoogleGCS(gcsSetup *GCSSetup) *StorageBase {
+    if gcsSetup == nil {
+        gcsSetup = &GCSSetup{
+            FilePath:       os.Getenv("GCS_LOCATION"),
+            ProjectID:      os.Getenv("GCS_PROJECT_ID"),
+            BucketName:     os.Getenv("GCS_BUCKET_NAME"),
+            Region:         os.Getenv("GCS_REGION"),
+            TimeOut:        os.Getenv("GCS_TIMEOUT"),
+            CredentialPath: os.Getenv("GCS_CREDENTIAL_PATH"),
+        }
+    }
+
+    base.gcsEnabled = gcsSetup
+    return base
 }
 
 func (base *StorageBase) UploadFiles() (storageModel *StorageData, err error) {
@@ -66,10 +124,9 @@ func (base *StorageBase) UploadFiles() (storageModel *StorageData, err error) {
     defer file.Close()
 
     var scaled = 80
-    val := os.Getenv("NON_SCALED_TYPE")
-    vals := strings.Split(val, ",")
+    vals := strings.Split(base.NonScaledTypes, ",")
 
-    if base.contains(vals, fileType) == true {
+    if inArray, _, _ := gohelper.InArray(vals, fileType); inArray == true {
         scaled = 100
     }
 
@@ -89,9 +146,9 @@ func (base *StorageBase) UploadFiles() (storageModel *StorageData, err error) {
     contentTypeData.StoragePath = storagePath
     contentTypeData.Filename = fileName
 
-    if base.s3Enabled {
+    if base.s3Enabled != nil {
         err = base.s3Upload(contentTypeData, scaled, file)
-    } else if base.gcsEnabled {
+    } else if base.gcsEnabled != nil {
         err = base.gcsUpload(contentTypeData, scaled, file)
     } else {
         err = base.localUpload(contentTypeData, scaled, file)
@@ -113,9 +170,9 @@ func (base *StorageBase) UploadFiles() (storageModel *StorageData, err error) {
 }
 
 func (base *StorageBase) GetFiles(storageType, storagePath, filename string) (files *os.File, err error) {
-    if base.s3Enabled {
+    if base.s3Enabled != nil {
         return base.s3GetFile(storageType, storagePath, filename)
-    } else if base.gcsEnabled {
+    } else if base.gcsEnabled != nil {
         return base.gcsGetFile(storageType, storagePath, filename)
     } else {
         return base.localGetFile(storageType, storagePath, filename)
