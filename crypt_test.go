@@ -41,7 +41,7 @@ func TestDefault(t *testing.T) {
 
 func TestRSA(t *testing.T) {
     generateKey := crypts.NewEncryptionBase()
-    privateKey, publicKey, err := generateKey.GenerateRSAKey()
+    rsaKey, err := generateKey.GenerateRSAKey(2048)
     if err != nil {
         t.Log(err.Error())
         t.Fail()
@@ -50,8 +50,8 @@ func TestRSA(t *testing.T) {
 
     encryptBase := crypts.NewEncryptionBase()
     encryptBase.SetPassphrase(passphrase)
-    encryptBase.SetEncodeBase64(true)    // if you want the message got encoded before encrypted
-    encryptBase.SetRsaKey("", publicKey) // encrypt use public key
+    encryptBase.SetEncodeBase64(true)             // if you want the message got encoded before encrypted
+    encryptBase.SetRsaPublicKey(rsaKey.PublicKey) // encrypt use public key
     encryptResult, err := encryptBase.EncryptRSA([]byte(testSentence))
     if err != nil {
         t.Log(err.Error())
@@ -61,8 +61,8 @@ func TestRSA(t *testing.T) {
 
     decryptBase := crypts.NewEncryptionBase()
     decryptBase.SetPassphrase(passphrase)
-    encryptBase.SetEncodeBase64(true)     // true if message got encoded before encrypted
-    decryptBase.SetRsaKey(privateKey, "") // decrypt using private key
+    encryptBase.SetEncodeBase64(true)               // true if message got encoded before encrypted
+    decryptBase.SetRsaPrivateKey(rsaKey.PrivateKey) // decrypt using private key
     decryptResult, err := decryptBase.DecryptRSA(encryptResult)
     if err != nil {
         t.Log(err.Error())
@@ -82,7 +82,7 @@ func TestRSA(t *testing.T) {
 
 func TestSign(t *testing.T) {
     generateKey := crypts.NewEncryptionBase()
-    privateKey, publicKey, err := generateKey.GenerateRSAKey()
+    rsaKey, err := generateKey.GenerateRSAKey(2048)
     if err != nil {
         t.Log(err.Error())
         t.Fail()
@@ -91,8 +91,8 @@ func TestSign(t *testing.T) {
 
     signBase := crypts.NewEncryptionBase()
     signBase.SetPassphrase(passphrase)
-    signBase.SetEncodeBase64(true)     // if you want the message got encoded before encrypted
-    signBase.SetRsaKey(privateKey, "") // sign use private key
+    signBase.SetEncodeBase64(true)                // if you want the message got encoded before encrypted
+    signBase.SetSignPrivateKey(rsaKey.PrivateKey) // sign use private key
     signature, err := signBase.SignData(testSentence)
     if err != nil {
         t.Log(err.Error())
@@ -102,8 +102,8 @@ func TestSign(t *testing.T) {
 
     verifyBase := crypts.NewEncryptionBase()
     verifyBase.SetPassphrase(passphrase)
-    verifyBase.SetEncodeBase64(true)    // if you want the message got encoded before encrypted
-    verifyBase.SetRsaKey("", publicKey) // verify use public key
+    verifyBase.SetEncodeBase64(true)              // if you want the message got encoded before encrypted
+    verifyBase.SetSignPublicKey(rsaKey.PublicKey) // verify use public key
     isVerified, err := verifyBase.VerifyData(testSentence, []byte(signature))
     if err != nil {
         t.Log(err.Error())

@@ -12,37 +12,23 @@ import (
     "os"
 )
 
-func (base *EncryptionBase) SetRsaKey(privateKey string, publicKey string) *EncryptionBase {
-    base.rsaPrivateKey = privateKey
-    base.rsaPublicKey = publicKey
+func (base *EncryptionBase) SetRsaPrivateKey(key string) *EncryptionBase {
+    base.rsaKey.PrivateKey = key
     return base
 }
 
-func (base *EncryptionBase) GenerateRSAKey() (privateKey string, publicKey string, err error) {
-    randomness := rand.Reader
-    bitSize := 2048
-
-    key, err := rsa.GenerateKey(randomness, bitSize)
-    if err != nil {
-        return "", "", fmt.Errorf("error generate RSA key, err := %s", err.Error())
-    }
-
-    keyPrivate := x509.MarshalPKCS1PrivateKey(key)
-    keyPublic := x509.MarshalPKCS1PublicKey(&key.PublicKey)
-
-    // Save the private key and public key to ENV
-    base.rsaPrivateKey = base64.RawURLEncoding.EncodeToString(keyPrivate)
-    base.rsaPublicKey = base64.RawURLEncoding.EncodeToString(keyPublic)
-    return base.rsaPrivateKey, base.rsaPublicKey, nil
+func (base *EncryptionBase) SetRsaPublicKey(key string) *EncryptionBase {
+    base.rsaKey.PublicKey = key
+    return base
 }
 
 func (base *EncryptionBase) EncryptRSA(secretMessage []byte) ([]byte, error) {
     passphrase := base.passphrase
     encodeBase64 := base.encodeUrlBase64
 
-    publicKeyBase := base.rsaPublicKey
+    publicKeyBase := base.rsaKey.PublicKey
     if publicKeyBase == "" {
-        publicKeyBase = os.Getenv("PUBLIC_KEY_ENCRYPT")
+        publicKeyBase = os.Getenv("PUBLIC_KEY_RSA_ENCRYPT")
     }
 
     publicKeyMarshal, err := base64.RawURLEncoding.DecodeString(publicKeyBase)
@@ -76,9 +62,9 @@ func (base *EncryptionBase) DecryptRSA(secretMessage []byte) ([]byte, error) {
     passphrase := base.passphrase
     encodeBase64 := base.encodeUrlBase64
 
-    privateKeyBase := base.rsaPrivateKey
+    privateKeyBase := base.rsaKey.PrivateKey
     if privateKeyBase == "" {
-        privateKeyBase = os.Getenv("PRIVATE_KEY_ENCRYPT")
+        privateKeyBase = os.Getenv("PRIVATE_KEY_RSA_ENCRYPT")
     }
 
     privateKeyMarshal, err := base64.RawURLEncoding.DecodeString(privateKeyBase)

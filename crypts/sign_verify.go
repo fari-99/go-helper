@@ -10,12 +10,22 @@ import (
     "os"
 )
 
+func (base *EncryptionBase) SetSignPrivateKey(key string) *EncryptionBase {
+    base.signKey.PrivateKey = key
+    return base
+}
+
+func (base *EncryptionBase) SetSignPublicKey(key string) *EncryptionBase {
+    base.signKey.PublicKey = key
+    return base
+}
+
 func (base *EncryptionBase) SignData(message string) (signature string, err error) {
     hashedMessage := base.createHash([]byte(message))
 
-    privateKeyBase := base.rsaPrivateKey
+    privateKeyBase := base.signKey.PrivateKey
     if privateKeyBase == "" {
-        privateKeyBase = os.Getenv("PRIVATE_KEY_ENCRYPT")
+        privateKeyBase = os.Getenv("PRIVATE_KEY_SIGN_ENCRYPT")
     }
 
     privateKeyMarshal, err := base64.RawURLEncoding.DecodeString(privateKeyBase)
@@ -44,9 +54,9 @@ func (base *EncryptionBase) SignData(message string) (signature string, err erro
 func (base *EncryptionBase) VerifyData(message string, signature []byte) (isVerified bool, err error) {
     hashedMessage := base.createHash([]byte(message))
 
-    publicKeyBase := base.rsaPublicKey
+    publicKeyBase := base.signKey.PublicKey
     if publicKeyBase == "" {
-        publicKeyBase = os.Getenv("PUBLIC_KEY_ENCRYPT")
+        publicKeyBase = os.Getenv("PUBLIC_KEY_SIGN_ENCRYPT")
     }
 
     publicKeyMarshal, err := base64.RawURLEncoding.DecodeString(publicKeyBase)
