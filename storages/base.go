@@ -202,16 +202,16 @@ func (base *StorageBase) getFileData(fileHeader *multipart.FileHeader) (contentT
     var ext string
 
     switch contentType {
-    case "image/png":
+    case ContentTypePNG:
         img, err = png.Decode(file)
         ext = ".jpg"
-    case "image/gif":
+    case ContentTypeGIF:
         img, err = gif.Decode(file)
         ext = ".jpg"
-    case "image/jpeg":
+    case ContentTypeJPEG:
         img, err = jpeg.Decode(file)
         ext = ".jpg"
-    case "image/jpg":
+    case ContentTypeJPG:
         img, err = jpeg.Decode(file)
         ext = ".jpg"
     default:

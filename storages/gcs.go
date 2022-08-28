@@ -53,7 +53,7 @@ func (base *StorageBase) gcsUpload(contentTypeData FileData, scaled int, file mu
 
     if contentTypeData.IsImage {
         // encode all image.Image to jpeg
-        // change all image mime to image/jpegjpeg
+        // change all image mime to image/jpeg
         var opt jpeg.Options
         opt.Quality = scaled
         err = jpeg.Encode(fileTemp, contentTypeData.ImageFile, &opt)
