@@ -21,6 +21,8 @@ var userDetails = token_generator.UserDetails{
 
 func TestToken(t *testing.T) {
     createTokenHelper := token_generator.NewJwt(AccessToken, RefreshToken, SignMethod)
+    createTokenHelper.SetIssuer("current_app_name")
+    createTokenHelper.SetOrigin("app_name_ask_for_auth")
     createTokenHelper, err := createTokenHelper.SetClaim(userDetails)
     if err != nil {
         t.Log("error set jwt claim")

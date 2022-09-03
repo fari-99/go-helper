@@ -4,7 +4,6 @@ import (
     _ "crypto"
     "fmt"
     "net/http"
-    "os"
     "time"
 
     "github.com/golang-jwt/jwt"
@@ -22,6 +21,9 @@ type BaseJwt struct {
 
     expiredAccess  int // in days, default 1
     expiredRefresh int // in days, default 7
+
+    origin string
+    issuer string
 
     requestCtx *http.Request
 }
@@ -59,23 +61,14 @@ func (base *BaseJwt) SetCtx(ctx *http.Request) *BaseJwt {
     return base
 }
 
-func (base *BaseJwt) setExpired(expiredAccess, expiredRefresh int) (*BaseJwt, error) {
-    // no expired on JWT token is a bad practice
-    if expiredAccess <= 0 { // if set 0, then default is 1
-        expiredAccess = base.expiredAccess
-    }
+func (base *BaseJwt) SetOrigin(origin string) *BaseJwt {
+    base.origin = origin
+    return base
+}
 
-    if expiredRefresh == 0 { // if set 0, then default is 7
-        expiredRefresh = base.expiredRefresh
-    }
-
-    if expiredAccess < expiredRefresh {
-        return nil, fmt.Errorf("refresh expired should be more or equal than access expired")
-    }
-
-    base.expiredAccess = expiredRefresh
-    base.expiredRefresh = expiredRefresh
-    return base, nil
+func (base *BaseJwt) SetIssuer(issuer string) *BaseJwt {
+    base.issuer = issuer
+    return base
 }
 
 func (base *BaseJwt) SetClaim(userDetails UserDetails) (*BaseJwt, error) {
@@ -88,7 +81,7 @@ func (base *BaseJwt) SetClaim(userDetails UserDetails) (*BaseJwt, error) {
 
     claim := JwtMapClaims{
         TokenData: TokenData{
-            Origin:      os.Getenv("GO_API_NAME"),
+            Origin:      base.origin,
             UserDetails: encryptUserDetails,
             AppData:     base.getAppData(),
         },
@@ -99,24 +92,12 @@ func (base *BaseJwt) SetClaim(userDetails UserDetails) (*BaseJwt, error) {
         StandardClaims: jwt.StandardClaims{
             IssuedAt:  timeDate.Unix(),
             ExpiresAt: timeDate.AddDate(0, 0, 1).Unix(), // default 1 day
-            Issuer:    os.Getenv("APP_NAME"),
+            Issuer:    base.issuer,
         },
     }
 
     base.mapClaims = &claim
     return base, nil
-}
-
-func (base *BaseJwt) getAppData() *AppData {
-    var appData AppData
-    if base.requestCtx != nil {
-        requestCtx := base.requestCtx
-        appData.UserAgent = requestCtx.UserAgent()
-        appData.IPList = append(appData.IPList, requestCtx.RemoteAddr)
-    }
-
-    appData.AppName = os.Getenv("GO_API_NAME")
-    return &appData
 }
 
 func (base *BaseJwt) SetClaimApp(appData AppData) *BaseJwt {
@@ -153,6 +134,63 @@ func (base *BaseJwt) SignClaims() (signedToken *SignedToken, err error) {
     }
 
     return token, nil
+}
+
+func (base *BaseJwt) ParseToken(typeClaims, jwtToken string) (*JwtMapClaims, error) {
+    token, err := jwt.ParseWithClaims(jwtToken, &JwtMapClaims{}, func(token *jwt.Token) (interface{}, error) {
+        secret := base.getSecret(typeClaims)
+        return secret, nil
+    })
+
+    if err != nil {
+        return nil, err
+    }
+
+    if claims, ok := token.Claims.(*JwtMapClaims); ok && token.Valid {
+        if claims.TokenData.UserDetails != "" {
+            userDetails, err := DecryptUserDetails(claims.TokenData.UserDetails)
+            if err != nil {
+                return nil, err
+            }
+
+            claims.UserDetails = &userDetails
+        }
+
+        return claims, nil
+    }
+
+    return nil, err
+}
+
+func (base *BaseJwt) setExpired(expiredAccess, expiredRefresh int) (*BaseJwt, error) {
+    // no expired on JWT token is a bad practice
+    if expiredAccess <= 0 { // if set 0, then default is 1
+        expiredAccess = base.expiredAccess
+    }
+
+    if expiredRefresh == 0 { // if set 0, then default is 7
+        expiredRefresh = base.expiredRefresh
+    }
+
+    if expiredAccess < expiredRefresh {
+        return nil, fmt.Errorf("refresh expired should be more or equal than access expired")
+    }
+
+    base.expiredAccess = expiredRefresh
+    base.expiredRefresh = expiredRefresh
+    return base, nil
+}
+
+func (base *BaseJwt) getAppData() *AppData {
+    var appData AppData
+    if base.requestCtx != nil {
+        requestCtx := base.requestCtx
+        appData.UserAgent = requestCtx.UserAgent()
+        appData.IPList = append(appData.IPList, requestCtx.RemoteAddr)
+    }
+
+    appData.AppName = base.origin
+    return &appData
 }
 
 func (base *BaseJwt) getSecret(typeClaims string) interface{} {
@@ -196,30 +234,4 @@ func (base *BaseJwt) getExpiredDate(typeClaims string) int64 {
     }
 
     return expiredTime.Unix()
-}
-
-func (base *BaseJwt) ParseToken(typeClaims, jwtToken string) (*JwtMapClaims, error) {
-    token, err := jwt.ParseWithClaims(jwtToken, &JwtMapClaims{}, func(token *jwt.Token) (interface{}, error) {
-        secret := base.getSecret(typeClaims)
-        return secret, nil
-    })
-
-    if err != nil {
-        return nil, err
-    }
-
-    if claims, ok := token.Claims.(*JwtMapClaims); ok && token.Valid {
-        if claims.TokenData.UserDetails != "" {
-            userDetails, err := DecryptUserDetails(claims.TokenData.UserDetails)
-            if err != nil {
-                return nil, err
-            }
-
-            claims.UserDetails = &userDetails
-        }
-
-        return claims, nil
-    }
-
-    return nil, err
 }
