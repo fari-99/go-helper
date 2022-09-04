@@ -12,6 +12,7 @@ import (
 
 const accessToken = "access_token"
 const refreshToken = "refresh_token"
+const adminRole = "admin"
 
 type BaseJwt struct {
     accessSecret  interface{}
@@ -26,6 +27,9 @@ type BaseJwt struct {
     issuer string
 
     requestCtx *http.Request
+
+    allowedRoles []string
+    defaultRoles string
 }
 
 type JwtMapClaims struct {
@@ -51,6 +55,8 @@ func NewJwt(accessSecret, refreshSecret, signedMethod string) *BaseJwt {
         signingMethod:  jwt.GetSigningMethod(signedMethod),
         expiredAccess:  1,
         expiredRefresh: 7,
+        defaultRoles:   adminRole,
+        allowedRoles:   []string{adminRole},
     }
 
     return &base
@@ -71,6 +77,18 @@ func (base *BaseJwt) SetIssuer(issuer string) *BaseJwt {
     return base
 }
 
+func (base *BaseJwt) SetRoles(allowedRoles []string, defaultRoles string) *BaseJwt {
+    for _, allowedRole := range allowedRoles {
+        base.allowedRoles = append(base.allowedRoles, allowedRole)
+    }
+
+    if defaultRoles != "" {
+        base.defaultRoles = defaultRoles
+    }
+
+    return base
+}
+
 func (base *BaseJwt) SetClaim(userDetails UserDetails) (*BaseJwt, error) {
     timeDate := time.Now()
 
@@ -86,8 +104,8 @@ func (base *BaseJwt) SetClaim(userDetails UserDetails) (*BaseJwt, error) {
             AppData:     base.getAppData(),
         },
         HasuraClaim: HasuraClaim{
-            AllowedRoles: []string{"customer", "merchant"},
-            DefaultRole:  "customer",
+            AllowedRoles: base.allowedRoles,
+            DefaultRole:  base.defaultRoles,
         },
         StandardClaims: jwt.StandardClaims{
             IssuedAt:  timeDate.Unix(),
