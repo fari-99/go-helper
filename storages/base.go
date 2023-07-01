@@ -179,6 +179,14 @@ func (base *StorageBase) GetFiles(storageType, storagePath, filename string) (fi
     }
 }
 
+func (base *StorageBase) PreSignGetFiles(storageType, storagePath, filename string) (presignUrl string, err error) {
+    if base.s3Enabled != nil {
+        return base.s3PresignDownload(storageType, storagePath, filename)
+    } else {
+        return "", fmt.Errorf("not setup for presign url")
+    }
+}
+
 func (base *StorageBase) getFileData(fileHeader *multipart.FileHeader) (contentTypeData FileData, err error) {
     file, err := fileHeader.Open()
     if err != nil {

@@ -7,6 +7,7 @@ import (
     "io/ioutil"
     "mime/multipart"
     "os"
+    "time"
 
     "github.com/aws/aws-sdk-go/aws"
     "github.com/aws/aws-sdk-go/aws/credentials"
@@ -38,6 +39,30 @@ func (base *StorageBase) s3Session() (sessionConfig *session.Session, err error)
     }
 
     return sessionCfg, nil
+}
+
+func (base *StorageBase) s3PresignDownload(storageType, storagePath, filename string) (presignUrl string, err error) {
+    sessionCfg, err := base.s3Session()
+    if err != nil {
+        return "", err
+    }
+
+    filePath := base.s3Enabled.FilePath + "/" + storageType + storagePath + filename
+    disposition := fmt.Sprintf("attachment; filename=\"%s\"", filename)
+    expiredTime := 5 * time.Minute
+    expired := time.Now().Add(expiredTime)
+    objectInput := s3.GetObjectInput{
+        Bucket:                     aws.String(base.s3Enabled.BucketName),
+        Key:                        aws.String(filePath),
+        ResponseContentDisposition: aws.String(disposition),
+        ResponseExpires:            aws.Time(expired),
+    }
+
+    s3Client := s3.New(sessionCfg)
+
+    req, _ := s3Client.GetObjectRequest(&objectInput)
+    urlStr, err := req.Presign(expiredTime)
+    return urlStr, err
 }
 
 func (base *StorageBase) s3Upload(contentTypeData FileData, scaled int, file multipart.File) error {
