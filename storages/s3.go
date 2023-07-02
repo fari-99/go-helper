@@ -42,7 +42,7 @@ func (base *StorageBase) s3Session() (sessionConfig *session.Session, err error)
     return sessionCfg, nil
 }
 
-func (base *StorageBase) s3PresignUpload(presignData PresignUploadConfig) (s3Presign.Forms, error) {
+func (base *StorageBase) s3PresignUpload(presignConfig PresignUploadConfig) (s3Presign.Forms, error) {
     if base.s3Enabled == nil {
         return s3Presign.Forms{}, fmt.Errorf("aws s3 setting not exists")
     }
@@ -54,7 +54,7 @@ func (base *StorageBase) s3PresignUpload(presignData PresignUploadConfig) (s3Pre
         AwsBucket:    base.s3Enabled.BucketName,
     }
 
-    timeExpired := presignData.ExpiredTime
+    timeExpired := presignConfig.ExpiredTime
     if timeExpired == nil {
         defaultExpired := time.Now().Add(15 * time.Minute)
         timeExpired = &defaultExpired
@@ -64,16 +64,16 @@ func (base *StorageBase) s3PresignUpload(presignData PresignUploadConfig) (s3Pre
     s3PolicyBase.SetExpirationDate(*timeExpired)
 
     //set upload policy
-    key := presignData.FilePath + presignData.Filename
+    key := presignConfig.FilePath + presignConfig.Filename
     s3PolicyBase.SetKeyPolicy(s3Presign.ConditionMatchingExactMatch, key)
     s3PolicyBase.SetExpiresPolicy(*timeExpired)
 
-    if presignData.MinSizeUpload >= 0 && presignData.MaxSizeUpload > 0 {
-        s3PolicyBase.SetContentLengthPolicy(presignData.MinSizeUpload, presignData.MaxSizeUpload)
+    if presignConfig.MinSizeUpload >= 0 && presignConfig.MaxSizeUpload > 0 {
+        s3PolicyBase.SetContentLengthPolicy(presignConfig.MinSizeUpload, presignConfig.MaxSizeUpload)
     }
 
-    if presignData.ContentType != "" {
-        s3PolicyBase.SetContentTypePolicy(s3Presign.ConditionMatchingExactMatch, presignData.ContentType)
+    if presignConfig.ContentType != "" {
+        s3PolicyBase.SetContentTypePolicy(s3Presign.ConditionMatchingExactMatch, presignConfig.ContentType)
     }
 
     // generated policy

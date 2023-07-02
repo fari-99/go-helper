@@ -193,7 +193,7 @@ func (base *StorageBase) PreSignGetFiles(storageType, storagePath, filename stri
     if base.s3Enabled != nil {
         return base.s3PresignDownload(storageType, storagePath, filename)
     } else if base.gcsEnabled != nil {
-        return "", fmt.Errorf("not setup for presign url")
+        return base.gcsPresignDownload(storageType, storagePath, filename)
     } else {
         return "", fmt.Errorf("not setup for presign url")
     }
@@ -203,7 +203,7 @@ func (base *StorageBase) PresignUploadFiles(presignConfig PresignUploadConfig) (
     if base.s3Enabled != nil {
         return base.s3PresignUpload(presignConfig) // need to marshal and unmarshal to s3Presign.Forms{}
     } else if base.gcsEnabled != nil {
-        return "", fmt.Errorf("not setup for presign url")
+        return base.s3PresignUpload(presignConfig) // presigned Url string
     } else {
         return "", fmt.Errorf("not setup for presign url")
     }
