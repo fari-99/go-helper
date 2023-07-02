@@ -8,6 +8,7 @@ import (
     "io/ioutil"
     "log"
     "mime/multipart"
+    "net/http"
     "os"
     "time"
 
@@ -30,6 +31,27 @@ func (base *StorageBase) gcsInit() (*storage.Client, error) {
     }
 
     return client, nil
+}
+
+func (base *StorageBase) gcsPresignDownload(storageType, storagePath, filename string) (presignUrl string, err error) {
+    client, err := base.gcsInit()
+    if err != nil {
+        return "", err
+    }
+
+    opts := &storage.SignedURLOptions{
+        Method:  http.MethodGet,
+        Expires: time.Now().Add(15 * time.Minute),
+        Scheme:  storage.SigningSchemeV4,
+    }
+
+    filePath := base.gcsEnabled.FilePath + "/" + storageType + storagePath + filename
+    presignedUrl, err := client.Bucket(base.gcsEnabled.BucketName).SignedURL(filePath, opts)
+    if err != nil {
+        return "", err
+    }
+
+    return presignedUrl, nil
 }
 
 func (base *StorageBase) gcsUpload(contentTypeData FileData, scaled int, file multipart.File) error {
