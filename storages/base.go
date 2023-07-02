@@ -11,6 +11,7 @@ import (
     "os"
     "path"
     "strings"
+    "time"
 
     gohelper "github.com/fari-99/go-helper"
 )
@@ -61,6 +62,15 @@ type GCSSetup struct {
     Region         string
     TimeOut        string
     CredentialPath string
+}
+
+type PresignUploadConfig struct {
+    MinSizeUpload uint64
+    MaxSizeUpload uint64
+    Filename      string
+    FilePath      string
+    ContentType   string
+    ExpiredTime   *time.Time
 }
 
 func NewStorageBase(fileHeader *multipart.FileHeader, fileType string) *StorageBase {
@@ -182,6 +192,18 @@ func (base *StorageBase) GetFiles(storageType, storagePath, filename string) (fi
 func (base *StorageBase) PreSignGetFiles(storageType, storagePath, filename string) (presignUrl string, err error) {
     if base.s3Enabled != nil {
         return base.s3PresignDownload(storageType, storagePath, filename)
+    } else if base.gcsEnabled != nil {
+        return "", fmt.Errorf("not setup for presign url")
+    } else {
+        return "", fmt.Errorf("not setup for presign url")
+    }
+}
+
+func (base *StorageBase) PresignUploadFiles(presignConfig PresignUploadConfig) (formData interface{}, err error) {
+    if base.s3Enabled != nil {
+        return base.s3PresignUpload(presignConfig) // need to marshal and unmarshal to s3Presign.Forms{}
+    } else if base.gcsEnabled != nil {
+        return "", fmt.Errorf("not setup for presign url")
     } else {
         return "", fmt.Errorf("not setup for presign url")
     }

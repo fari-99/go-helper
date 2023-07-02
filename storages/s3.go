@@ -14,6 +14,7 @@ import (
     "github.com/aws/aws-sdk-go/aws/session"
     "github.com/aws/aws-sdk-go/service/s3"
     "github.com/aws/aws-sdk-go/service/s3/s3manager"
+    "github.com/fari-99/aws-presignpost-s3-go"
 )
 
 func (base *StorageBase) s3Session() (sessionConfig *session.Session, err error) {
@@ -39,6 +40,45 @@ func (base *StorageBase) s3Session() (sessionConfig *session.Session, err error)
     }
 
     return sessionCfg, nil
+}
+
+func (base *StorageBase) s3PresignUpload(presignData PresignUploadConfig) (s3Presign.Forms, error) {
+    if base.s3Enabled == nil {
+        return s3Presign.Forms{}, fmt.Errorf("aws s3 setting not exists")
+    }
+
+    awsConfig := s3Presign.AwsConfig{
+        AwsAccessKey: base.s3Enabled.AccessKey,
+        AwsRegion:    base.s3Enabled.Region,
+        AwsSecretKey: base.s3Enabled.SecretKey,
+        AwsBucket:    base.s3Enabled.BucketName,
+    }
+
+    timeExpired := presignData.ExpiredTime
+    if timeExpired == nil {
+        defaultExpired := time.Now().Add(15 * time.Minute)
+        timeExpired = &defaultExpired
+    }
+
+    s3PolicyBase := s3Presign.NewS3Policy(awsConfig)
+    s3PolicyBase.SetExpirationDate(*timeExpired)
+
+    //set upload policy
+    key := presignData.FilePath + presignData.Filename
+    s3PolicyBase.SetKeyPolicy(s3Presign.ConditionMatchingExactMatch, key)
+    s3PolicyBase.SetExpiresPolicy(*timeExpired)
+
+    if presignData.MinSizeUpload >= 0 && presignData.MaxSizeUpload > 0 {
+        s3PolicyBase.SetContentLengthPolicy(presignData.MinSizeUpload, presignData.MaxSizeUpload)
+    }
+
+    if presignData.ContentType != "" {
+        s3PolicyBase.SetContentTypePolicy(s3Presign.ConditionMatchingExactMatch, presignData.ContentType)
+    }
+
+    // generated policy
+    _, _, formsData := s3PolicyBase.GeneratePolicy()
+    return formsData, nil
 }
 
 func (base *StorageBase) s3PresignDownload(storageType, storagePath, filename string) (presignUrl string, err error) {
