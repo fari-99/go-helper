@@ -95,10 +95,10 @@ const XenditMaxVirtualAccount = 999999 // Xendit offers 999,999 Virtual Account 
 
 func GenerateVirtualAccount(bankCode string, identifier string) (virtualNumber string, err error) {
     xenditMerchantCode := os.Getenv("XENDIT_MERCHANT_CODE")
-    merchantCode := getMerchantCode(bankCode)
+    _ = getMerchantCode(bankCode)
     identifier = generateIdentifier(identifier)
 
-    virtualAccountNumber := fmt.Sprintf("%s%s%s", merchantCode, xenditMerchantCode, identifier)
+    virtualAccountNumber := fmt.Sprintf("%s%s", xenditMerchantCode, identifier)
     if len(virtualAccountNumber) > XenditVirtualAccountLength {
         return "", fmt.Errorf("generated virtual account more than %d", XenditVirtualAccountLength)
     }
