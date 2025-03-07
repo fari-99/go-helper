@@ -13,39 +13,40 @@ import (
 
 type AcceptPayments interface {
 	CreateBill() (*models.Invoices, error)
-	GetBill() (*flipModel.GetBillingResponse, error)
-	UpdateBill() (*flipModel.EditBillingResponse, error)
-	ConfirmBill() (*flipModel.ConfirmBillPaymentResponse, error)
+	GetBill(billID int64) (*flipModel.EditBillingResponse, error) // TODO: change on go-flip get bill response
+	UpdateBill(billID int64, isActive bool) (*flipModel.EditBillingResponse, error)
+	ConfirmCallback(token string) (bool, error)
 }
 
 type acceptPayments struct {
-	baseHelpers *FlipHelpers
+	flipData *FlipData
 }
 
-func NewAcceptPayments(flipHelpers *FlipHelpers) AcceptPayments {
-	return acceptPayments{flipHelpers}
+func NewAcceptPayments(flipData *FlipData) AcceptPayments {
+	return acceptPayments{flipData}
 }
 
 func (repo acceptPayments) CreateBill() (*models.Invoices, error) {
+	transactionModel := repo.flipData.TransactionModel
+	transactionUser := repo.flipData.TransactionUser
+
 	createBillParams := flipModel.CreateBillRequest{
-		Title: repo.baseHelpers.TransactionModel.ReferenceNo,
-		Type:  flipConstants.BillTypeSingle,
-		// Amount:                base.TransactionModel, // TODO: calculate total amount
-		ExpiredDate:           repo.baseHelpers.TransactionModel.ExpiredAt.Format(flipConstants.TimeFormatExpiredDate),
-		RedirectUrl:           repo.baseHelpers.TransactionModel.RedirectUrl,
+		Title:                 repo.flipData.TransactionModel.ReferenceNo,
+		Type:                  flipConstants.BillTypeSingle,
+		Amount:                fmt.Sprintf("%.2f", repo.flipData.TotalItemFee),
+		ExpiredDate:           transactionModel.ExpiredAt.Format(flipConstants.TimeFormatExpiredDate),
+		RedirectUrl:           transactionModel.RedirectUrl,
 		IsAddressRequired:     flipConstants.SelfieFlagTrue,
 		IsPhoneNumberRequired: flipConstants.SelfieFlagTrue,
-		Step:                  flipConstants.BillStepTwo,
-		SenderName:            fmt.Sprintf("%s %s", repo.baseHelpers.TransactionUser.FirstName, repo.baseHelpers.TransactionUser.LastName),
-		SenderEmail:           repo.baseHelpers.TransactionUser.EmailAddress,
-		SenderPhoneNumber:     repo.baseHelpers.TransactionUser.Phone,
-		SenderAddress:         repo.baseHelpers.TransactionUser.Address,
-		// SenderBank:            base.TransactionModel.PaymentMethodType, // TODO: get payment gateway type
-		SenderBankType: repo.baseHelpers.TransactionModel.PaymentMethodCode,
+		Step:                  flipConstants.BillStepTwo, // get flip app payments redirect url
+		SenderName:            fmt.Sprintf("%s %s", transactionUser.FirstName, transactionUser.LastName),
+		SenderEmail:           transactionUser.EmailAddress,
+		SenderPhoneNumber:     transactionUser.Phone,
+		SenderAddress:         transactionUser.Address,
 	}
 
-	flipHelper := flip.NewBaseFlip()
-	bill, idemKey, err := flipHelper.CreateBill(createBillParams)
+	flipBase := flip.NewBaseFlip()
+	bill, idemKey, err := flipBase.CreateBill(createBillParams)
 	if err != nil {
 		return nil, err
 	}
@@ -53,11 +54,11 @@ func (repo acceptPayments) CreateBill() (*models.Invoices, error) {
 	billMarshal, _ := json.Marshal(bill)
 
 	invoice := models.Invoices{
-		TransactionUuid: repo.baseHelpers.TransactionModel.TransactionUuid,
-		// TotalPrice:        0, // TODO: calculate total amount
-		PaymentGatewayID:  repo.baseHelpers.TransactionModel.PaymentGatewayID,
-		PaymentMethodType: repo.baseHelpers.TransactionModel.PaymentMethodType,
-		PaymentMethodCode: repo.baseHelpers.TransactionModel.PaymentMethodCode,
+		TransactionUuid:   transactionModel.TransactionUuid,
+		TotalPrice:        float64(bill.Amount),
+		PaymentGatewayID:  transactionModel.PaymentGatewayID,
+		PaymentMethodType: transactionModel.PaymentMethodType,
+		PaymentMethodCode: transactionModel.PaymentMethodCode,
 		ExpiredAt:         *bill.ExpiredDate,
 		Identifier:        idemKey,
 		RedirectUrl:       bill.RedirectUrl,
@@ -67,14 +68,45 @@ func (repo acceptPayments) CreateBill() (*models.Invoices, error) {
 	return &invoice, nil
 }
 
-func (repo acceptPayments) GetBill() (*flipModel.GetBillingResponse, error) {
-	return nil, nil
+func (repo acceptPayments) GetBill(billID int64) (*flipModel.EditBillingResponse, error) {
+	flipBase := flip.NewBaseFlip()
+	bill, err := flipBase.GetBill(billID)
+	if err != nil {
+		return nil, err
+	}
+
+	return bill, nil
 }
 
-func (repo acceptPayments) UpdateBill() (*flipModel.EditBillingResponse, error) {
-	return nil, nil
+func (repo acceptPayments) UpdateBill(billID int64, isActive bool) (*flipModel.EditBillingResponse, error) {
+	transactionModel := repo.flipData.TransactionModel
+
+	status := flipConstants.BillStatusActive
+	if !isActive {
+		status = flipConstants.BillStatusInActive
+	}
+
+	updateData := flipModel.EditBillingRequest{
+		Title:                 repo.flipData.TransactionModel.ReferenceNo,
+		Type:                  flipConstants.BillTypeSingle,
+		Amount:                fmt.Sprintf("%.2f", repo.flipData.TotalItemFee),
+		ExpiredDate:           transactionModel.ExpiredAt.Format(flipConstants.TimeFormatExpiredDate),
+		RedirectUrl:           transactionModel.RedirectUrl,
+		IsAddressRequired:     flipConstants.SelfieFlagTrue,
+		IsPhoneNumberRequired: flipConstants.SelfieFlagTrue,
+		Status:                status,
+	}
+
+	flipBase := flip.NewBaseFlip()
+	bill, err := flipBase.EditBill(billID, updateData)
+	if err != nil {
+		return nil, err
+	}
+
+	return bill, nil
 }
 
-func (repo acceptPayments) ConfirmBill() (*flipModel.ConfirmBillPaymentResponse, error) {
-	return nil, nil
+func (repo acceptPayments) ConfirmCallback(token string) (bool, error) {
+	isValid, err := flip.CheckCallback(token)
+	return isValid, err
 }

@@ -9,34 +9,9 @@ import (
 	"testing"
 
 	"github.com/fari-99/go-helper/payment_gateways/models"
-	xenditConstant "github.com/fari-99/go-helper/payment_gateways/xendit_helpers/constants"
 )
 
-type XenditTestData struct {
-	PaymentTypeID int
-	Model         int
-	Country       int
-}
-
-func GetTestXenditData(input XenditTestData) (models.Transactions, error) {
-	paymentTypes, err := xenditConstant.GetPaymentTypeDetail(xenditConstant.PaymentTypes(input.PaymentTypeID))
-	if err != nil {
-		return models.Transactions{}, err
-	}
-
-	var paymentMethods []models.PaymentMethods
-	for paymentTypeID, paymentType := range paymentTypes.PaymentMethods {
-		for country, paymentMethod := range paymentType {
-			if int(country) == input.Country {
-				paymentMethods = append(paymentMethods, models.PaymentMethods{
-					PaymentMethodTypeID: input.PaymentTypeID,
-					PaymentMethodID:     int(paymentTypeID),
-					Code:                paymentMethod.Code[input.Model],
-				})
-			}
-		}
-	}
-
+func GetTestFlipData() models.Transactions {
 	items := []models.TransactionItems{
 		{
 			TransactionUuid:     "uuid-123456879456",
@@ -117,47 +92,29 @@ func GetTestXenditData(input XenditTestData) (models.Transactions, error) {
 
 	transactionModel := models.Transactions{
 		TransactionUuid:  "uuid-9876543251",
-		PaymentGatewayID: XenditID,
-		// PaymentMethodType: int8(rand.Intn(5) + 1), // Let's assume 5 different types
-		// PaymentMethodCode: fmt.Sprintf("code-%v", rand.Intn(100)),
-		ReferenceNo:  "ref-123456789",
-		Descriptions: "Description for transaction 123465789",
-		RedirectUrl:  fmt.Sprintf("https://example.com/redirect/%v", rand.Intn(100)),
-		ExpiredAt:    GetRandomFutureTime(),
+		PaymentGatewayID: FlipID,
+		ReferenceNo:      "ref-123456789",
+		Descriptions:     "Description for transaction 123465789",
+		RedirectUrl:      fmt.Sprintf("https://example.com/redirect/%v", rand.Intn(100)),
+		ExpiredAt:        GetRandomFutureTime(),
 
 		TransactionItems:           items,
 		TransactionBillingAddress:  &billingAddress,
 		TransactionShippingAddress: &shippingAddress,
 		TransactionUsers:           &users,
 		TransactionCompanies:       company,
-		PaymentMethods:             paymentMethods,
 	}
 
-	return transactionModel, nil
+	return transactionModel
 }
 
-func TestXenditCreateInvoice(t *testing.T) {
-	os.Setenv("XENDIT_TEST", "true")
-	os.Setenv("XENDIT_VERIFICATION_TOKEN", "")
-	os.Setenv("XENDIT_SECRET_KEY", "")
-	os.Setenv("XENDIT_REMINDER_UNIT", "hours")
-	os.Setenv("XENDIT_REMINDER_TIME", "1")
-	os.Setenv("DOMAIN_URL_CUSTOMER", "http://example.com/v1")
+func TestCreateBill(t *testing.T) {
+	os.Setenv("FLIP_ENVIRONMENT", "dev")
+	os.Setenv("FLIP_SECRET_TOKEN", "YOUR FLIP SECRET TOKEN")
+	os.Setenv("FLIP_VALIDATION_TOKEN", "YOUR FLIP VALIDATION TOKEN")
 
-	testData := XenditTestData{
-		PaymentTypeID: xenditConstant.PaymentTypeVirtualAccount,
-		Model:         xenditConstant.ModuleInvoices,
-		Country:       xenditConstant.Indonesia,
-	}
-
-	transactionModel, err := GetTestXenditData(testData)
-	if err != nil {
-		t.Fail()
-		t.Log(err.Error())
-		return
-	}
-
-	invoices, err := CreateInvoice(transactionModel)
+	flipData := GetTestFlipData()
+	invoices, err := CreateInvoice(flipData)
 	if err != nil {
 		t.Fail()
 		t.Log(err.Error())

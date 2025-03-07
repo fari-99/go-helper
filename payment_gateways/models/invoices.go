@@ -14,8 +14,3 @@ type Invoices struct {
 	RedirectParams string `json:"redirect_params"`
 	ResponseJson   string `json:"response_json"`
 }
-
-// TableName define table name
-func (c Invoices) TableName() string {
-	return "invoices"
-}

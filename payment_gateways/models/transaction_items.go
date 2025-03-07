@@ -12,7 +12,3 @@ type TransactionItems struct {
 	ProductCategoryName string     `json:"product_category_name"`
 	ItemUrl             string     `json:"item_url"`
 }
-
-func (model TransactionItems) TableName() string {
-	return "transaction_items"
-}

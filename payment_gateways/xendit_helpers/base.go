@@ -23,7 +23,7 @@ type BaseXenditHelpers struct {
 	TransactionAddressModel *models.TransactionAddress
 	TransactionItemModels   []models.TransactionItems
 	TransactionUser         *models.TransactionUsers
-	EventPaymentMethods     []models.PaymentMethods
+	PaymentMethods          []models.PaymentMethods
 }
 
 type XenditInvoiceData struct {
@@ -90,8 +90,8 @@ func (base *BaseXenditHelpers) SetTransactionUser(transactionUser models.Transac
 	return base
 }
 
-func (base *BaseXenditHelpers) SetPaymentMethods(eventPaymentMethods []models.PaymentMethods) *BaseXenditHelpers {
-	base.EventPaymentMethods = eventPaymentMethods
+func (base *BaseXenditHelpers) SetPaymentMethods(paymentMethods []models.PaymentMethods) *BaseXenditHelpers {
+	base.PaymentMethods = paymentMethods
 	return base
 }
 
@@ -104,7 +104,7 @@ func (base *BaseXenditHelpers) CheckCallbackToken(callbackToken string) error {
 }
 
 func (base *BaseXenditHelpers) generateXenditData(module int) (*XenditInvoiceData, error) {
-	paymentMethods, err := generateXenditPaymentMethods(base.EventPaymentMethods, module)
+	paymentMethods, err := generateXenditPaymentMethods(base.PaymentMethods, module)
 	if err != nil {
 		return nil, err
 	}
@@ -175,8 +175,8 @@ func getAdditionalFee() ([]xendit.InvoiceFee, float64, error) {
 	return additionalFee, 5000, nil
 }
 
-func generateXenditPaymentMethods(eventPaymentMethods []models.PaymentMethods, module int) ([]string, error) {
-	if eventPaymentMethods == nil || len(eventPaymentMethods) == 0 { // default payment method is Virtual Accounts
+func generateXenditPaymentMethods(paymentMethodModels []models.PaymentMethods, module int) ([]string, error) {
+	if paymentMethodModels == nil || len(paymentMethodModels) == 0 { // default payment method is Virtual Accounts
 		paymentTypeDetails, _ := xenditConstant.GetPaymentTypeDetail(xenditConstant.PaymentTypeVirtualAccount)
 
 		var paymentMethods []string
@@ -190,13 +190,8 @@ func generateXenditPaymentMethods(eventPaymentMethods []models.PaymentMethods, m
 	}
 
 	var paymentMethods []string
-	for _, eventPaymentMethod := range eventPaymentMethods {
-		// TODO: set status
-		// if eventPaymentMethod.Status != config.GetConstStatus("STATUS_ACTIVE", nil) {
-		// 	continue
-		// }
-
-		paymentMethods = append(paymentMethods, eventPaymentMethod.Code)
+	for _, paymentMethodModel := range paymentMethodModels {
+		paymentMethods = append(paymentMethods, paymentMethodModel.Code)
 	}
 
 	return paymentMethods, nil
@@ -228,7 +223,7 @@ func generateXenditAddress(transactionAddress *models.TransactionAddress) ([]xen
 			PostalCode:  transactionAddress.Postcode,
 			State:       transactionAddress.ProvinceName,
 			StreetLine1: transactionAddress.Address,
-			StreetLine2: "",
+			StreetLine2: transactionAddress.AdditionalAddress,
 		},
 	}
 
@@ -246,7 +241,7 @@ func generateXenditItems(transactionItems []models.TransactionItems) ([]xendit.I
 			Price:    transactionItem.TotalPrice,
 			Quantity: int(transactionItem.Qty),
 			Category: transactionItem.ProductCategoryName,
-			Url:      fmt.Sprintf("%s/%s", os.Getenv("EVENT_PAGE_BASE"), "event_id"), // TODO: Generate url to FE event page
+			Url:      transactionItem.ItemUrl,
 		}
 
 		invoiceItems = append(invoiceItems, invoiceItem)

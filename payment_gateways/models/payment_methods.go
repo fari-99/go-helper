@@ -5,7 +5,3 @@ type PaymentMethods struct {
 	PaymentMethodID     int    `json:"payment_method_id"`      // ovo, dana, bni-va, bca-va, etc
 	Code                string `json:"code"`                   // "OVO", "DANA", etc
 }
-
-func (model PaymentMethods) TableName() string {
-	return "event_payment_methods"
-}

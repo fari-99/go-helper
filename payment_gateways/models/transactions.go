@@ -19,7 +19,3 @@ type Transactions struct {
 	TransactionCompanies       []TransactionCompanies `json:"transaction_companies"`
 	PaymentMethods             []PaymentMethods       `json:"payment_methods"`
 }
-
-func (model Transactions) TableName() string {
-	return "transactions"
-}

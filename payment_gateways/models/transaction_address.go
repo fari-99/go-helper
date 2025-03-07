@@ -17,7 +17,3 @@ type TransactionAddress struct {
 	CityName     string `json:"city_name"`
 	CityCode     string `json:"city_code"`
 }
-
-func (model TransactionAddress) TableName() string {
-	return "transaction_address"
-}

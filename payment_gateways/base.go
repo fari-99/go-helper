@@ -2,7 +2,12 @@ package payment_gateways
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
+	"github.com/spf13/cast"
+
+	"github.com/fari-99/go-helper/payment_gateways/flip_helpers"
 	"github.com/fari-99/go-helper/payment_gateways/ipay88_helpers"
 	ipay88Constant "github.com/fari-99/go-helper/payment_gateways/ipay88_helpers/constants"
 	"github.com/fari-99/go-helper/payment_gateways/models"
@@ -40,6 +45,12 @@ func GetPaymentGatewayMethod(paymentGatewayID int) (interface{}, error) {
 	}
 }
 
+func GetRandomFutureTime() *time.Time {
+	hoursAhead := rand.Intn(48) + 1 // Between 1 and 48 hours
+	futureTime := time.Now().Add(time.Duration(hoursAhead) * time.Hour)
+	return &futureTime
+}
+
 func CreateInvoice(transactionModel models.Transactions) (*models.Invoices, error) {
 	switch transactionModel.PaymentGatewayID {
 	case XenditID:
@@ -72,6 +83,40 @@ func CreateInvoice(transactionModel models.Transactions) (*models.Invoices, erro
 		}
 
 		return invoiceModel, nil
+	case FlipID:
+		flipHelper := flip_helpers.NewFlipHelpers(transactionModel.TransactionUuid).
+			SetTransactionDetails(transactionModel).
+			SetTransactionUser(*transactionModel.TransactionUsers).
+			SetTransactionItems(transactionModel.TransactionItems)
+		flipData, err := flipHelper.GenerateFlipData()
+		if err != nil {
+			return nil, err
+		}
+
+		flipAcceptPayment := flip_helpers.NewAcceptPayments(flipData)
+		invoiceModel, err := flipAcceptPayment.CreateBill()
+		if err != nil {
+			return nil, err
+		}
+
+		return invoiceModel, nil
+	default:
+		return nil, fmt.Errorf("payment gateway not found")
+	}
+}
+
+func GetDetails(paymentGatewayID int, identifier string) (interface{}, error) {
+	switch paymentGatewayID {
+	case XenditID:
+		xenditInvoice := xendit_helpers.NewInvoices(nil)
+		invoice, err := xenditInvoice.GetInvoiceByID(identifier)
+		return invoice, err
+	case Ipay88ID:
+		panic("not yet available, ipay88 didn't use id, but query params to check data")
+	case FlipID:
+		flipAcceptPayment := flip_helpers.NewAcceptPayments(nil)
+		bill, err := flipAcceptPayment.GetBill(cast.ToInt64(identifier))
+		return bill, err
 	default:
 		return nil, fmt.Errorf("payment gateway not found")
 	}
