@@ -1,6 +1,8 @@
 module github.com/fari-99/go-helper
 
-go 1.23
+go 1.23.0
+
+toolchain go1.23.3
 
 require (
 	cloud.google.com/go/storage v1.50.0
@@ -13,14 +15,14 @@ require (
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/google/uuid v1.6.0
-	github.com/jlaffaye/ftp v0.0.0-20220821212529-0aeb8660a7e2
-	github.com/joho/godotenv v1.4.0
+	github.com/jlaffaye/ftp v0.2.0
+	github.com/joho/godotenv v1.5.1
 	github.com/nbutton23/zxcvbn-go v0.0.0-20210217022336-fa2cb2858354
-	github.com/pkg/sftp v1.13.5
-	github.com/spf13/cast v1.5.0
-	github.com/xendit/xendit-go v1.0.24
-	golang.org/x/crypto v0.32.0
-	golang.org/x/exp v0.0.0-20220823124025-807a23277127
+	github.com/pkg/sftp v1.13.7
+	github.com/spf13/cast v1.7.1
+	github.com/xendit/xendit-go v1.0.25
+	golang.org/x/crypto v0.36.0
+	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 )
 
 require (
@@ -66,9 +68,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
 	golang.org/x/net v0.34.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.8.0 // indirect
 	google.golang.org/api v0.214.0 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
