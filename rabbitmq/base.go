@@ -148,10 +148,14 @@ func (base *QueueSetup) Close() {
 	base.closed = true
 	base.cancel()
 
-	loggingMessage("waiting for consumer done with their process", nil)
-	base.waitGroup.Wait()
-
 	if base.channel != nil {
+		if base.queueConfig.QueueConsumerConfig.Consumer != "" {
+			err := base.channel.Cancel(base.queueConfig.QueueConsumerConfig.Consumer, false)
+			if err != nil {
+				loggingMessage("Error closing channel", err.Error())
+			}
+		}
+
 		err := base.channel.Close()
 		if err != nil {
 			loggingMessage("Error closing channel", err.Error())
@@ -165,6 +169,8 @@ func (base *QueueSetup) Close() {
 		}
 	}
 
+	loggingMessage("waiting for consumer done with their process", nil)
+	base.waitGroup.Wait()
 }
 
 func (base *QueueSetup) reconnect() {
