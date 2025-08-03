@@ -267,9 +267,6 @@ func (base *QueueSetup) executeMessageConsumer(consumer ConsumerHandler, deliver
 
 		for {
 			select {
-			case <-base.ctx.Done():
-				loggingMessage("Consumer shutdown via context", nil)
-				return
 			case delivery, ok := <-deliveries:
 				if !ok {
 					loggingMessage("Deliveries channel closed", nil)
@@ -305,6 +302,11 @@ func (base *QueueSetup) executeMessageConsumer(consumer ConsumerHandler, deliver
 						loggingMessage("Acknowledged message", nil)
 					}
 				}
+			case <-base.ctx.Done():
+				loggingMessage("Shutdown signal received on loop, waiting for handlers...", nil)
+				base.waitGroup.Wait() // Wait for all handlers to finish
+				loggingMessage("All handlers done. Exiting loop.", nil)
+				return
 			}
 		}
 	}()
