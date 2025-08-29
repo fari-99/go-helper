@@ -152,6 +152,7 @@ func (base *QueueSetup) Close() {
 	if base.queueConfig != nil && base.queueConfig.QueueConsumerConfig != nil {
 		tag = base.queueConfig.QueueConsumerConfig.Consumer
 	}
+
 	if base.channel != nil && tag != "" {
 		_ = base.channel.Cancel(tag, false)
 	}
@@ -168,7 +169,7 @@ func (base *QueueSetup) Close() {
 	if base.channel != nil {
 		_ = base.channel.Close()
 	}
-	
+
 	if base.connection != nil {
 		_ = base.connection.Close()
 	}
