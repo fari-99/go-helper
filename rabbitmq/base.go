@@ -146,43 +146,32 @@ func (base *QueueSetup) declareQueue() error {
 func (base *QueueSetup) Close() {
 	loggingMessage("Closing Connection", nil)
 	base.closed = true
-	base.cancel()
 
-	cancelFunc := func(connection *amqp.Connection, channel *amqp.Channel, queueConsumerConfig *ConsumerConfig) {
-		if channel != nil {
-			if queueConsumerConfig.Consumer != "" {
-				err := channel.Cancel(queueConsumerConfig.Consumer, false)
-				if err != nil {
-					loggingMessage("Error closing channel", err.Error())
-				}
-			}
-
-			err := channel.Close()
-			if err != nil {
-				loggingMessage("Error closing channel", err.Error())
-			}
-		}
-
-		if connection != nil {
-			err := connection.Close()
-			if err != nil {
-				loggingMessage("Error closing connection", err.Error())
-			}
-		}
+	// 1) Stop incoming deliveries (if we have a consumer tag)
+	var tag string
+	if base.queueConfig != nil && base.queueConfig.QueueConsumerConfig != nil {
+		tag = base.queueConfig.QueueConsumerConfig.Consumer
+	}
+	if base.channel != nil && tag != "" {
+		_ = base.channel.Cancel(tag, false)
 	}
 
-	if base.queueConfig.QueueConsumerConfig.AutoAck {
-		cancelFunc(base.connection, base.channel, base.queueConfig.QueueConsumerConfig)
+	// 2) Wait for consumer goroutine(s) to exit their loops / finish handlers
+	loggingMessage("waiting for consumer done with their process", nil)
+	base.waitGroup.Wait()
 
-		loggingMessage("waiting for consumer done with their process", nil)
-		base.waitGroup.Wait()
-	} else {
-		loggingMessage("waiting for consumer done with their process", nil)
-		base.waitGroup.Wait()
-
-		cancelFunc(base.connection, base.channel, base.queueConfig.QueueConsumerConfig)
+	// 3) Now signal ctx cancel and close channel/connection
+	if base.cancel != nil {
+		base.cancel()
 	}
 
+	if base.channel != nil {
+		_ = base.channel.Close()
+	}
+	
+	if base.connection != nil {
+		_ = base.connection.Close()
+	}
 }
 
 func (base *QueueSetup) reconnect() {
@@ -303,9 +292,7 @@ func (base *QueueSetup) executeMessageConsumer(consumer ConsumerHandler, deliver
 					}
 				}
 			case <-base.ctx.Done():
-				loggingMessage("Shutdown signal received on loop, waiting for handlers...", nil)
-				base.waitGroup.Wait() // Wait for all handlers to finish
-				loggingMessage("All handlers done. Exiting loop.", nil)
+				loggingMessage("Shutdown signal received on loop. Exiting.", nil)
 				return
 			}
 		}

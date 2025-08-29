@@ -1,6 +1,7 @@
 package rabbitmq
 
 import (
+	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -44,6 +45,11 @@ func (base *QueueSetup) SetupQueue(queueDeclare *QueueDeclareConfig, consumerCon
 			NoWait:    false,
 			Args:      nil,
 		}
+	}
+
+	if consumerConfig.Consumer == "" {
+		uuidData, _ := uuid.NewUUID()
+		consumerConfig.Consumer = uuidData.String()
 	}
 
 	base.queueConfig = &QueueConfig{
