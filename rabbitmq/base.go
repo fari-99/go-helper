@@ -147,32 +147,44 @@ func (base *QueueSetup) Close() {
 	loggingMessage("Closing Connection", nil)
 	base.closed = true
 
-	// 1) Stop incoming deliveries (if we have a consumer tag)
-	var tag string
+	// get consumer tag
+	var consumerTag string
 	if base.queueConfig != nil && base.queueConfig.QueueConsumerConfig != nil {
-		tag = base.queueConfig.QueueConsumerConfig.Consumer
+		consumerTag = base.queueConfig.QueueConsumerConfig.Consumer
 	}
 
-	if base.channel != nil && tag != "" {
-		_ = base.channel.Cancel(tag, false)
+	// closed channel so didn't get another message
+	if base.channel != nil && consumerTag != "" {
+		_ = base.channel.Cancel(consumerTag, false)
 	}
 
-	// 2) Wait for consumer goroutine(s) to exit their loops / finish handlers
-	loggingMessage("waiting for consumer done with their process", nil)
-	base.waitGroup.Wait()
+	cancelFunc := func(connection *amqp.Connection, channel *amqp.Channel) {
+		if channel != nil {
+			err := channel.Close()
+			if err != nil {
+				loggingMessage("Error closing channel", err.Error())
+			}
+		}
 
-	// 3) Now signal ctx cancel and close channel/connection
-	if base.cancel != nil {
-		base.cancel()
+		if connection != nil {
+			err := connection.Close()
+			if err != nil {
+				loggingMessage("Error closing connection", err.Error())
+			}
+		}
 	}
 
-	if base.channel != nil {
-		_ = base.channel.Close()
+	if base.queueConfig.QueueConsumerConfig.AutoAck {
+		loggingMessage("waiting for consumer done with their process [AutoAck True]", nil)
+		base.waitGroup.Wait() // wait for all process get processed
+		base.cancel()         // cancel all go routine
+	} else {
+		loggingMessage("waiting for consumer done with their process [AutoAck False]", nil)
+		base.cancel()         // cancel all go routine
+		base.waitGroup.Wait() // wait for all process get processed
 	}
 
-	if base.connection != nil {
-		_ = base.connection.Close()
-	}
+	cancelFunc(base.connection, base.channel) // stop all connection for channel and connection rabbitmq
 }
 
 func (base *QueueSetup) reconnect() {
