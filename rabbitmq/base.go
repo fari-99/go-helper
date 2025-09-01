@@ -146,31 +146,45 @@ func (base *QueueSetup) declareQueue() error {
 func (base *QueueSetup) Close() {
 	loggingMessage("Closing Connection", nil)
 	base.closed = true
-	base.cancel()
 
-	if base.channel != nil {
-		if base.queueConfig.QueueConsumerConfig.Consumer != "" {
-			err := base.channel.Cancel(base.queueConfig.QueueConsumerConfig.Consumer, false)
+	// get consumer tag
+	var consumerTag string
+	if base.queueConfig != nil && base.queueConfig.QueueConsumerConfig != nil {
+		consumerTag = base.queueConfig.QueueConsumerConfig.Consumer
+	}
+
+	// closed channel so didn't get another message
+	if base.channel != nil && consumerTag != "" {
+		_ = base.channel.Cancel(consumerTag, false)
+	}
+
+	cancelFunc := func(connection *amqp.Connection, channel *amqp.Channel) {
+		if channel != nil {
+			err := channel.Close()
 			if err != nil {
 				loggingMessage("Error closing channel", err.Error())
 			}
 		}
 
-		err := base.channel.Close()
-		if err != nil {
-			loggingMessage("Error closing channel", err.Error())
+		if connection != nil {
+			err := connection.Close()
+			if err != nil {
+				loggingMessage("Error closing connection", err.Error())
+			}
 		}
 	}
 
-	if base.connection != nil {
-		err := base.connection.Close()
-		if err != nil {
-			loggingMessage("Error closing connection", err.Error())
-		}
+	if base.queueConfig.QueueConsumerConfig.AutoAck {
+		loggingMessage("waiting for consumer done with their process [AutoAck True]", nil)
+		base.waitGroup.Wait() // wait for all process get processed
+		base.cancel()         // cancel all go routine
+	} else {
+		loggingMessage("waiting for consumer done with their process [AutoAck False]", nil)
+		base.cancel()         // cancel all go routine
+		base.waitGroup.Wait() // wait for all process get processed
 	}
 
-	loggingMessage("waiting for consumer done with their process", nil)
-	base.waitGroup.Wait()
+	cancelFunc(base.connection, base.channel) // stop all connection for channel and connection rabbitmq
 }
 
 func (base *QueueSetup) reconnect() {
@@ -255,9 +269,6 @@ func (base *QueueSetup) executeMessageConsumer(consumer ConsumerHandler, deliver
 
 		for {
 			select {
-			case <-base.ctx.Done():
-				loggingMessage("Consumer shutdown via context", nil)
-				return
 			case delivery, ok := <-deliveries:
 				if !ok {
 					loggingMessage("Deliveries channel closed", nil)
@@ -279,9 +290,10 @@ func (base *QueueSetup) executeMessageConsumer(consumer ConsumerHandler, deliver
 							loggingMessage("Recovered from panic during message handling", errorData)
 							handled = false
 
-							base.handleRetry(delivery)
+							base.handleRetry(delivery, isAutoAck)
 						}
 					}()
+
 					consumer(handlerData)
 				}()
 
@@ -292,6 +304,9 @@ func (base *QueueSetup) executeMessageConsumer(consumer ConsumerHandler, deliver
 						loggingMessage("Acknowledged message", nil)
 					}
 				}
+			case <-base.ctx.Done():
+				loggingMessage("Shutdown signal received on loop. Exiting.", nil)
+				return
 			}
 		}
 	}()
@@ -363,9 +378,14 @@ func (base *QueueSetup) WaitForSignalAndShutdown() {
 	base.Close()
 }
 
-func (base *QueueSetup) handleRetry(delivery amqp.Delivery) {
+func (base *QueueSetup) handleRetry(delivery amqp.Delivery, isAutoAck bool) {
 	if base.customRetry != nil {
 		base.customRetry(delivery)
+		return
+	}
+
+	if base.channel == nil || base.channel.IsClosed() {
+		loggingMessage("Channel already closed, can't retry", nil)
 		return
 	}
 
@@ -408,13 +428,21 @@ func (base *QueueSetup) handleRetry(delivery amqp.Delivery) {
 				Timestamp:    time.Now(),
 			},
 		)
+
 		if err != nil {
 			loggingMessage("Failed to republish message", err.Error())
 		}
-		_ = delivery.Reject(false) // drop the original (we requeued manually)
+
+		if !isAutoAck {
+			_ = delivery.Reject(false) // drop the original (we requeued manually)
+		}
+
 	} else {
 		loggingMessage(fmt.Sprintf("Exceeded max retries (%d). Sending to DLX", maxRetry), nil)
-		_ = delivery.Reject(false) // routed to DLX via queue args
+
+		if !isAutoAck {
+			_ = delivery.Reject(false) // This sends to DLX if configured
+		}
 	}
 }
 
