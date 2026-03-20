@@ -11,7 +11,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	manager "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/fari-99/aws-presignpost-s3-go"
 )
@@ -123,7 +123,7 @@ func (base *StorageBase) s3Upload(contentTypeData FileData, scaled int, file mul
 	}
 
 	s3Client := s3.NewFromConfig(s3Config)
-	uploader := manager.NewUploader(s3Client)
+	uploader := manager.New(s3Client)
 
 	// create temp file
 	fileTemp, err := os.CreateTemp(os.TempDir(), "prefix")
@@ -154,14 +154,14 @@ func (base *StorageBase) s3Upload(contentTypeData FileData, scaled int, file mul
 		return fmt.Errorf("error seek file aws to start, err := %s", err.Error())
 	}
 
-	params := s3.PutObjectInput{
+	params := manager.UploadObjectInput{
 		Bucket:      aws.String(base.s3Enabled.BucketName),
 		Key:         aws.String(contentTypeData.StoragePath + contentTypeData.Filename),
 		Body:        fileTemp,
 		ContentType: aws.String(contentTypeData.ContentType),
 	}
 
-	_, err = uploader.Upload(base.ctx, &params)
+	_, err = uploader.UploadObject(base.ctx, &params)
 
 	if err != nil {
 		return fmt.Errorf("upload to S3 failed, err := %s", err.Error())
@@ -178,7 +178,7 @@ func (base *StorageBase) s3GetFile(storageType, storagePath, filename string) (f
 	}
 
 	s3Client := s3.NewFromConfig(s3Config)
-	downloader := manager.NewDownloader(s3Client)
+	downloader := manager.New(s3Client)
 
 	fileTemp, err := os.CreateTemp(os.TempDir(), "prefix")
 	if err != nil {
@@ -186,10 +186,13 @@ func (base *StorageBase) s3GetFile(storageType, storagePath, filename string) (f
 	}
 
 	filePath := base.s3Enabled.FilePath + "/" + storageType + storagePath + filename
-	_, err = downloader.Download(base.ctx, fileTemp, &s3.GetObjectInput{
-		Bucket: aws.String(base.s3Enabled.BucketName),
-		Key:    aws.String(filePath),
-	})
+	params := &manager.DownloadObjectInput{
+		Bucket:   aws.String(base.s3Enabled.BucketName),
+		Key:      aws.String(filePath),
+		WriterAt: fileTemp,
+	}
+
+	_, err = downloader.DownloadObject(base.ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to download file, %v", err)
 	}
