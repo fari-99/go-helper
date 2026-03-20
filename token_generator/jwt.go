@@ -27,16 +27,18 @@ type BaseJwt struct {
 	issuer string
 
 	requestCtx *http.Request
+	clientIP   string
 
 	allowedRoles []string
 	defaultRoles string
 }
 
 type JwtMapClaims struct {
-	Uuid        string       `json:"uuid"`
-	TokenData   TokenData    `json:"token_data"`
-	UserDetails *UserDetails `json:"user_details"`
-	HasuraClaim HasuraClaim  `json:"hasura_claim"`
+	Uuid         string       `json:"uuid"`
+	TokenData    TokenData    `json:"token_data"`
+	UserDetails  *UserDetails `json:"user_details"`
+	HasuraClaim  HasuraClaim  `json:"hasura_claim"`
+	TwoFAEnabled bool         `json:"two_fa_enabled"`
 	jwt.RegisteredClaims
 }
 
@@ -89,6 +91,11 @@ func (base *BaseJwt) SetRoles(allowedRoles []string, defaultRoles string) *BaseJ
 	return base
 }
 
+func (base *BaseJwt) SetClientIP(clientIP string) *BaseJwt {
+	base.clientIP = clientIP
+	return base
+}
+
 func (base *BaseJwt) SetClaim(userDetails UserDetails) (*BaseJwt, error) {
 	timeDate := time.Now()
 
@@ -112,6 +119,7 @@ func (base *BaseJwt) SetClaim(userDetails UserDetails) (*BaseJwt, error) {
 			ExpiresAt: jwt.NewNumericDate(timeDate.AddDate(0, 0, 1)), // default 1 day
 			Issuer:    base.issuer,
 		},
+		TwoFAEnabled: userDetails.TwoFAEnabled,
 	}
 
 	base.mapClaims = &claim
@@ -204,7 +212,7 @@ func (base *BaseJwt) getAppData() *AppData {
 	if base.requestCtx != nil {
 		requestCtx := base.requestCtx
 		appData.UserAgent = requestCtx.UserAgent()
-		appData.IPList = append(appData.IPList, requestCtx.RemoteAddr)
+		appData.IPList = append(appData.IPList, base.clientIP)
 	}
 
 	appData.AppName = base.origin
