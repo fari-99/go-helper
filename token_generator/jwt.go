@@ -34,12 +34,18 @@ type BaseJwt struct {
 }
 
 type JwtMapClaims struct {
-	Uuid         string       `json:"uuid"`
-	TokenData    TokenData    `json:"token_data"`
-	UserDetails  *UserDetails `json:"user_details"`
-	HasuraClaim  HasuraClaim  `json:"hasura_claim"`
-	TwoFAEnabled bool         `json:"two_fa_enabled"`
+	Uuid        string       `json:"uuid"`
+	TokenData   TokenData    `json:"token_data"`
+	UserDetails *UserDetails `json:"user_details"`
+	HasuraClaim HasuraClaim  `json:"hasura_claim"`
+	TwoFAModels TwoFAModels  `json:"two_fa_models"`
 	jwt.RegisteredClaims
+}
+
+type TwoFAModels struct {
+	TOTP         bool `json:"totp"`
+	RecoveryCode bool `json:"recovery_code"`
+	Email        bool `json:"email"`
 }
 
 type SignedToken struct {
@@ -119,7 +125,7 @@ func (base *BaseJwt) SetClaim(userDetails UserDetails) (*BaseJwt, error) {
 			ExpiresAt: jwt.NewNumericDate(timeDate.AddDate(0, 0, 1)), // default 1 day
 			Issuer:    base.issuer,
 		},
-		TwoFAEnabled: userDetails.TwoFAEnabled,
+		TwoFAModels: userDetails.TwoFAModels,
 	}
 
 	base.mapClaims = &claim

@@ -15,11 +15,11 @@ type TokenData struct {
 }
 
 type UserDetails struct {
-	ID           string   `json:"id,omitempty"`
-	Email        string   `json:"email,omitempty"`
-	Username     string   `json:"username,omitempty"`
-	UserRoles    []string `json:"user_roles"`
-	TwoFAEnabled bool     `json:"two_fa_enabled"`
+	ID          string      `json:"id,omitempty"`
+	Email       string      `json:"email,omitempty"`
+	Username    string      `json:"username,omitempty"`
+	UserRoles   []string    `json:"user_roles"`
+	TwoFAModels TwoFAModels `json:"two_fa_enabled"`
 }
 
 type HasuraClaim struct {
