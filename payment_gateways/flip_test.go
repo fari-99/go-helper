@@ -52,8 +52,6 @@ func GetTestFlipData() models.Transactions {
 		CityCode:          "LA",
 	}
 
-	billingAddress := shippingAddress
-
 	users := models.TransactionUsers{
 		TransactionUuid:   "uuid-12345",
 		FirstName:         "John",
@@ -99,7 +97,7 @@ func GetTestFlipData() models.Transactions {
 		ExpiredAt:        GetRandomFutureTime(),
 
 		TransactionItems:           items,
-		TransactionBillingAddress:  &billingAddress,
+		TransactionBillingAddress:  new(shippingAddress),
 		TransactionShippingAddress: &shippingAddress,
 		TransactionUsers:           &users,
 		TransactionCompanies:       company,

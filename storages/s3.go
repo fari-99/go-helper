@@ -57,7 +57,7 @@ func (base *StorageBase) s3PresignUpload(presignConfig PresignUploadConfig) (s3P
 	timeExpired := presignConfig.ExpiredTime
 	if timeExpired == nil {
 		defaultExpired := time.Now().Add(15 * time.Minute)
-		timeExpired = &defaultExpired
+		timeExpired = new(defaultExpired)
 	}
 
 	s3PolicyBase := s3Presign.NewS3Policy(awsConfig)

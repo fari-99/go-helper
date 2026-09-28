@@ -79,7 +79,7 @@ func (repo invoices) CreateInvoice() (*models.Invoices, error) {
 		Amount:                         totalAmount,
 		Description:                    xenditInvoiceData.descriptions,
 		PayerEmail:                     xenditInvoiceData.user.Email,
-		ShouldSendEmail:                &shouldSendEmail,
+		ShouldSendEmail:                new(shouldSendEmail),
 		Customer:                       *xenditInvoiceData.user,
 		CustomerNotificationPreference: *xenditInvoiceData.notifications,
 		InvoiceDuration:                int(transactionDetails.ExpiredAt.Sub(time.Now()).Seconds()),

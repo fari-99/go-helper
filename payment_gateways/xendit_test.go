@@ -77,8 +77,6 @@ func GetTestXenditData(input XenditTestData) (models.Transactions, error) {
 		CityCode:          "LA",
 	}
 
-	billingAddress := shippingAddress
-
 	users := models.TransactionUsers{
 		TransactionUuid:   "uuid-12345",
 		FirstName:         "John",
@@ -126,8 +124,8 @@ func GetTestXenditData(input XenditTestData) (models.Transactions, error) {
 		ExpiredAt:    GetRandomFutureTime(),
 
 		TransactionItems:           items,
-		TransactionBillingAddress:  &billingAddress,
-		TransactionShippingAddress: &shippingAddress,
+		TransactionBillingAddress:  new(shippingAddress),
+		TransactionShippingAddress: new(shippingAddress),
 		TransactionUsers:           &users,
 		TransactionCompanies:       company,
 		PaymentMethods:             paymentMethods,

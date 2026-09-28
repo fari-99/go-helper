@@ -129,14 +129,13 @@ func (base *BaseIpay88Helper) generatePaymentRequestData() (*ipay88Model.Payment
 }
 
 func getAdditionalFee() ([]ipay88Model.ItemTransactions, float64, error) {
-	itemType := "ADDITIONAL_FEE"
 	additionalFee := []ipay88Model.ItemTransactions{
 		{
 			ID:       uuid.New().String(),
 			Name:     "Admin Fee",
 			Quantity: "1",
 			Amount:   fmt.Sprintf("%d", 5000),
-			Type:     &itemType,
+			Type:     new("ADDITIONAL_FEE"),
 			// URL:        nil,
 			// ImageURL:   nil,
 			// Tenor:      nil,

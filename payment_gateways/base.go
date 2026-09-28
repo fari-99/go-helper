@@ -48,7 +48,7 @@ func GetPaymentGatewayMethod(paymentGatewayID int) (interface{}, error) {
 func GetRandomFutureTime() *time.Time {
 	hoursAhead := rand.Intn(48) + 1 // Between 1 and 48 hours
 	futureTime := time.Now().Add(time.Duration(hoursAhead) * time.Hour)
-	return &futureTime
+	return new(futureTime)
 }
 
 func CreateInvoice(transactionModel models.Transactions) (*models.Invoices, error) {

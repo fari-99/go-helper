@@ -1,6 +1,6 @@
 module github.com/fari-99/go-helper
 
-go 1.25.0
+go 1.26.8
 
 require (
 	cloud.google.com/go/storage v1.62.1

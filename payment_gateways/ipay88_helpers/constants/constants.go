@@ -51,10 +51,10 @@ func GetIpay88Url(urlType int) (*string, error) {
 	baseUrl := GetAllIpay88Url()
 	if value, ok := baseUrl[urlType]; ok {
 		url := value[isDev]
-		return &url, nil
-	} else {
-		return nil, fmt.Errorf("url type [%d] is not found", urlType)
+		return new(url), nil
 	}
+
+	return nil, fmt.Errorf("url type [%d] is not found", urlType)
 }
 
 const (
