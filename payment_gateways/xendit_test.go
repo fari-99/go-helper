@@ -163,6 +163,6 @@ func TestXenditCreateInvoice(t *testing.T) {
 	}
 
 	invoiceMarshal, _ := json.MarshalIndent(invoices, "", " ")
-	log.Printf(string(invoiceMarshal))
+	log.Printf("%s", invoiceMarshal)
 	return
 }
