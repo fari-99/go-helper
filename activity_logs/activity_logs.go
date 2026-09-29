@@ -22,8 +22,6 @@ import (
 	"log"
 	"strings"
 	"time"
-
-	"radiance/helpers/sentry"
 )
 
 // Action names emitted in the "action" field of an ActivityLog. The BULK_*
@@ -112,7 +110,7 @@ func buildEntry(actorUserID interface{}, action, entity string, entityID interfa
 func emit(entry ActivityLog, ctx ...interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
-			sentry.SentryLogger(fmt.Sprintf("activitylog: recovered from panic while emitting log: %v", r), ctx...)
+			fmt.Sprintf("activitylog: recovered from panic while emitting log: %v", r)
 		}
 	}()
 

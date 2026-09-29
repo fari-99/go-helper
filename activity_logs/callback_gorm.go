@@ -7,8 +7,6 @@ import (
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
-
-	"radiance/helpers/sentry"
 )
 
 // Keys used to pass the acting user into a gorm operation so the callbacks can
@@ -384,7 +382,7 @@ func toDataMap(value interface{}) map[string]interface{} {
 func guard(db *gorm.DB, fn func()) {
 	defer func() {
 		if r := recover(); r != nil {
-			sentry.SentryLogger(fmt.Sprintf("activitylog: recovered from panic in gorm callback: %v", r))
+			fmt.Sprintf("activitylog: recovered from panic in gorm callback: %v", r)
 		}
 	}()
 	fn()
