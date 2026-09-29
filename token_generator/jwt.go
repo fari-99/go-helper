@@ -194,7 +194,7 @@ func (base *BaseJwt) ParseToken(typeClaims, jwtToken string) (*JwtMapClaims, err
 	return nil, err
 }
 
-func (base *BaseJwt) setExpired(expiredAccess, expiredRefresh int) (*BaseJwt, error) {
+func (base *BaseJwt) SetExpired(expiredAccess, expiredRefresh int) (*BaseJwt, error) {
 	// no expired on JWT token is a bad practice
 	if expiredAccess <= 0 { // if set 0, then default is 1
 		expiredAccess = base.expiredAccess
@@ -227,16 +227,18 @@ func (base *BaseJwt) getAppData() *AppData {
 
 func (base *BaseJwt) getSecret(typeClaims string) interface{} {
 	var secret interface{}
-	if typeClaims == accessToken {
+	switch typeClaims {
+	case accessToken:
 		secret = base.accessSecret
-	} else if typeClaims == refreshToken {
+	case refreshToken:
 		secret = base.refreshSecret
 	}
 
 	return secret
 }
 
-/**
+/*
+*
 All JWT uuid, must be signed with ACCESS UUID from JWT UUID
 so that we can made only one refresh token for many device,
 but still have one access token
