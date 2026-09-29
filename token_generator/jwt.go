@@ -20,8 +20,10 @@ type BaseJwt struct {
 	signingMethod jwt.SigningMethod
 	mapClaims     *JwtMapClaims
 
-	expiredAccess  int // in days, default 1
-	expiredRefresh int // in days, default 7
+	expiredAccess      int           // in days, default 1
+	expiredAccessType  time.Duration // days, hour, minutes, seconds
+	expiredRefresh     int           // in days, default 7
+	expiredRefreshType time.Duration // days, hour, minutes, seconds
 
 	origin string
 	issuer string
@@ -58,13 +60,15 @@ type SignedToken struct {
 
 func NewJwt(accessSecret, refreshSecret, signedMethod string) *BaseJwt {
 	base := BaseJwt{
-		accessSecret:   []byte(accessSecret),
-		refreshSecret:  []byte(refreshSecret),
-		signingMethod:  jwt.GetSigningMethod(signedMethod),
-		expiredAccess:  1,
-		expiredRefresh: 7,
-		defaultRoles:   adminRole,
-		allowedRoles:   []string{adminRole},
+		accessSecret:       []byte(accessSecret),
+		refreshSecret:      []byte(refreshSecret),
+		signingMethod:      jwt.GetSigningMethod(signedMethod),
+		expiredAccess:      1,
+		expiredAccessType:  time.Hour * 24, // 24 hour or 1 day
+		expiredRefresh:     7,
+		expiredRefreshType: time.Hour * 24, // 24 hour or 1 day
+		defaultRoles:       adminRole,
+		allowedRoles:       []string{adminRole},
 	}
 
 	return &base
@@ -194,7 +198,7 @@ func (base *BaseJwt) ParseToken(typeClaims, jwtToken string) (*JwtMapClaims, err
 	return nil, err
 }
 
-func (base *BaseJwt) SetExpired(expiredAccess, expiredRefresh int) (*BaseJwt, error) {
+func (base *BaseJwt) SetExpired(expiredAccess int, accessType time.Duration, expiredRefresh int, refreshType time.Duration) (*BaseJwt, error) {
 	// no expired on JWT token is a bad practice
 	if expiredAccess <= 0 { // if set 0, then default is 1
 		expiredAccess = base.expiredAccess
@@ -204,12 +208,14 @@ func (base *BaseJwt) SetExpired(expiredAccess, expiredRefresh int) (*BaseJwt, er
 		expiredRefresh = base.expiredRefresh
 	}
 
-	if expiredAccess < expiredRefresh {
+	if time.Duration(expiredAccess)*accessType > time.Duration(expiredRefresh)*refreshType {
 		return nil, fmt.Errorf("refresh expired should be more or equal than access expired")
 	}
 
-	base.expiredAccess = expiredRefresh
+	base.expiredAccess = expiredAccess
+	base.expiredAccessType = accessType
 	base.expiredRefresh = expiredRefresh
+	base.expiredRefreshType = refreshType
 	return base, nil
 }
 
@@ -262,9 +268,11 @@ func (base *BaseJwt) getExpiredDate(typeClaims string) time.Time {
 	var expiredTime time.Time
 	switch typeClaims {
 	case accessToken:
-		expiredTime = timeDate.AddDate(0, 0, base.expiredAccess) // expired for 1 day
+		expiredTimeType := base.expiredAccessType
+		expiredTime = timeDate.Add(time.Duration(base.expiredAccess) * expiredTimeType)
 	case refreshToken:
-		expiredTime = timeDate.AddDate(0, 0, base.expiredRefresh) // expired after 7 day
+		expiredTimeType := base.expiredRefreshType
+		expiredTime = timeDate.Add(time.Duration(base.expiredRefresh) * expiredTimeType)
 	}
 
 	return expiredTime
