@@ -62,6 +62,10 @@ func (base *EncryptionBase) Decrypt(data []byte) ([]byte, error) {
     }
 
     nonceSize := gcm.NonceSize()
+    if len(data) < nonceSize {
+        return nil, fmt.Errorf("cipher text too short")
+    }
+
     nonce, cipherText := data[:nonceSize], data[nonceSize:]
 
     plaintext, err := gcm.Open(nil, nonce, cipherText, nil)
