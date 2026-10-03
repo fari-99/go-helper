@@ -7,13 +7,15 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"mime"
 	"mime/multipart"
-	"net/http"
 	"os"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/gabriel-vasile/mimetype"
 
 	gohelper "github.com/fari-99/go-helper"
 )
@@ -226,15 +228,18 @@ func (base *StorageBase) getFileData(fileHeader *multipart.FileHeader) (contentT
 
 	defer file.Close()
 
-	buffer := make([]byte, 1024)
-	_, err = file.Read(buffer)
+	buffer := make([]byte, 3072) // enough for mimetype to read the magic bytes
+	n, err := io.ReadFull(file, buffer)
+	if err == io.ErrUnexpectedEOF {
+		err = nil // file is smaller than the buffer
+	}
 	if err != nil {
 		err = fmt.Errorf("file could not be read, err := %s", err.Error())
 		return
 	}
 
 	_, _ = file.Seek(0, 0)
-	contentType := http.DetectContentType(buffer)
+	contentType := mimetype.Detect(buffer[:n]).String()
 
 	var img image.Image
 	var isImage = true
@@ -258,8 +263,7 @@ func (base *StorageBase) getFileData(fileHeader *multipart.FileHeader) (contentT
 		// Get file extension
 		ext = path.Ext(fileHeader.Filename)
 
-		// http.DetectContentType can't recognise some audio/video (e.g. mp3 without an ID3 tag),
-		// so fall back to the extension, but only for media types
+		// backstop for audio/video without magic bytes, only media types are trusted by extension
 		if contentType == "application/octet-stream" {
 			if byExt, _, mimeErr := mime.ParseMediaType(mime.TypeByExtension(strings.ToLower(ext))); mimeErr == nil &&
 				(strings.HasPrefix(byExt, "audio/") || strings.HasPrefix(byExt, "video/")) {

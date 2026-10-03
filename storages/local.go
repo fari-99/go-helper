@@ -13,7 +13,7 @@ func (base *StorageBase) localUpload(contentTypeData FileData, scaled int, file 
     storagePath := contentTypeData.StoragePath
     fileName := contentTypeData.Filename
 
-    log.Printf(storagePath + fileName)
+    log.Print(storagePath + fileName)
     // setup new file
     out, err := os.OpenFile(storagePath+fileName, os.O_WRONLY|os.O_CREATE, 0666)
     if err != nil {

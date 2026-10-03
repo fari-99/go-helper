@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.113.4
 	github.com/fari-99/aws-presignpost-s3-go v1.1.0
 	github.com/fari-99/go-flip v1.0.1
+	github.com/gabriel-vasile/mimetype v1.4.15
 	github.com/go-ozzo/ozzo-validation/v4 v4.4.1
 	github.com/go-playground/locales v0.14.2
 	github.com/go-resty/resty/v2 v2.17.2
@@ -55,7 +56,6 @@ require (
 	github.com/envoyproxy/go-control-plane/envoy v1.39.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.3.3 // indirect
 	github.com/felixge/httpsnoop v1.1.0 // indirect
-	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.5 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
