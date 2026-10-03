@@ -28,8 +28,8 @@ func (base *StorageBase) generatePath(sType string) (string, string, error) {
 
     filePath := fmt.Sprintf("%s/%s/%s", storagePath, sType, datePath)
 
-    if base.s3Enabled != nil && base.gcsEnabled != nil {
-        err := os.MkdirAll(filePath, 0711)
+    if base.s3Enabled == nil && base.gcsEnabled == nil {
+        err := os.MkdirAll(filePath, 0755)
         if err != nil {
             return filePath, datePath, err
         }
