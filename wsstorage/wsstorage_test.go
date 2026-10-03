@@ -130,3 +130,21 @@ func assertNoFiles(t *testing.T, root string) {
 		return nil
 	})
 }
+
+func TestDetectMimeAudio(t *testing.T) {
+	dir := os.Getenv("MIME_SAMPLES")
+	if dir == "" {
+		t.Skip("MIME_SAMPLES not set")
+	}
+	for _, name := range []string{"a.mp3", "real.mp3", "a.m4a", "a.flac", "a.opus", "a.wav", "a.aac"} {
+		data, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := detectMime(data[:min(len(data), 3072)], name)
+		t.Logf("%s -> %s", name, got)
+		if !strings.HasPrefix(got, "audio/") {
+			t.Errorf("%s: got %s", name, got)
+		}
+	}
+}

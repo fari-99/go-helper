@@ -13,7 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/http"
+	stdmime "mime"
 	"os"
 	"path"
 	"path/filepath"
@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	manager "github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/gabriel-vasile/mimetype"
 	"google.golang.org/api/option"
 )
 
@@ -119,7 +120,7 @@ func Upload(ctx context.Context, cfg Config, fileType, originalName string, body
 	limited := &limitReader{r: body, remaining: maxBytes, limited: maxBytes > 0}
 	buffered := bufio.NewReaderSize(limited, 4096)
 
-	head, err := buffered.Peek(512)
+	head, err := buffered.Peek(3072)
 	if len(head) == 0 {
 		if err == nil || errors.Is(err, io.EOF) {
 			return nil, ErrEmptyFile
@@ -127,7 +128,7 @@ func Upload(ctx context.Context, cfg Config, fileType, originalName string, body
 		return nil, err
 	}
 
-	mime := http.DetectContentType(head)
+	mime := detectMime(head, originalName)
 	name := generateName(originalName, safeExtension(originalName))
 	datePath := time.Now().Local().Format("2006/01/02/")
 
@@ -154,6 +155,20 @@ func Upload(ctx context.Context, cfg Config, fileType, originalName string, body
 		OriginalFilename: originalName,
 		Size:             limited.read,
 	}, nil
+}
+
+// detectMime sniffs the magic bytes; audio/video without any (octet-stream) is resolved by extension.
+func detectMime(head []byte, originalName string) string {
+	detected := mimetype.Detect(head).String()
+	if detected != "application/octet-stream" {
+		return detected
+	}
+
+	byExt, _, err := stdmime.ParseMediaType(stdmime.TypeByExtension(strings.ToLower(path.Ext(originalName))))
+	if err == nil && (strings.HasPrefix(byExt, "audio/") || strings.HasPrefix(byExt, "video/")) {
+		return byExt
+	}
+	return detected
 }
 
 // limitReader fails (instead of silently truncating) once more than the limit has been read.
