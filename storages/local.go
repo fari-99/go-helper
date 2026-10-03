@@ -44,7 +44,7 @@ func (base *StorageBase) localUpload(contentTypeData FileData, scaled int, file 
 }
 
 func (base *StorageBase) localGetFile(storageType, storagePath, filename string) (files *os.File, err error) {
-    filePath := base.localPath + "/" + storageType + storagePath + filename
+    filePath := base.localPath + "/" + storageType + "/" + storagePath + filename
     file, err := os.Open(filePath)
     if err != nil {
         return nil, fmt.Errorf("error open file, %s", err.Error())
