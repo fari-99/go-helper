@@ -7,6 +7,7 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -256,6 +257,15 @@ func (base *StorageBase) getFileData(fileHeader *multipart.FileHeader) (contentT
 		isImage = false
 		// Get file extension
 		ext = path.Ext(fileHeader.Filename)
+
+		// http.DetectContentType can't recognise some audio/video (e.g. mp3 without an ID3 tag),
+		// so fall back to the extension, but only for media types
+		if contentType == "application/octet-stream" {
+			if byExt, _, mimeErr := mime.ParseMediaType(mime.TypeByExtension(strings.ToLower(ext))); mimeErr == nil &&
+				(strings.HasPrefix(byExt, "audio/") || strings.HasPrefix(byExt, "video/")) {
+				contentType = byExt
+			}
+		}
 	}
 
 	contentTypeData = FileData{
