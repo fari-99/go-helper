@@ -291,3 +291,61 @@ func TestToken_SetClaimApp(t *testing.T) {
 		t.Errorf("expected AppName service-a, got %+v", claims.TokenData.AppData)
 	}
 }
+
+func TestNewJwt_ExpiredDefaultsFromEnv(t *testing.T) {
+	t.Setenv("JWT_ACCESS_TOKEN_EXPIRED", "2")
+	t.Setenv("JWT_ACCESS_TOKEN_EXPIRED_TYPE", "hours")
+	t.Setenv("JWT_REFRESH_TOKEN_EXPIRED", "30")
+	t.Setenv("JWT_REFRESH_TOKEN_EXPIRED_TYPE", "days")
+
+	signed := signWithNewJwt(t)
+	if got := signed.AccessExpiredAt.Sub(time.Now()); got < 119*time.Minute || got > 121*time.Minute {
+		t.Fatalf("expected access expiry ~2h from env, got %s", got)
+	}
+	if got := signed.RefreshExpiredAt.Sub(time.Now()); got < 29*24*time.Hour || got > 31*24*time.Hour {
+		t.Fatalf("expected refresh expiry ~30d from env, got %s", got)
+	}
+}
+
+func TestNewJwt_ExpiredFallsBackWhenEnvMissingOrInvalid(t *testing.T) {
+	t.Setenv("JWT_ACCESS_TOKEN_EXPIRED", "abc")
+	t.Setenv("JWT_ACCESS_TOKEN_EXPIRED_TYPE", "fortnights")
+	t.Setenv("JWT_REFRESH_TOKEN_EXPIRED", "")
+
+	signed := signWithNewJwt(t)
+	if got := signed.AccessExpiredAt.Sub(time.Now()); got < 23*time.Hour || got > 25*time.Hour {
+		t.Fatalf("expected default 1 day access expiry, got %s", got)
+	}
+	if got := signed.RefreshExpiredAt.Sub(time.Now()); got < 6*24*time.Hour || got > 8*24*time.Hour {
+		t.Fatalf("expected default 7 day refresh expiry, got %s", got)
+	}
+}
+
+func TestNewJwt_ExpiredEnvIgnoredWhenAccessOutlivesRefresh(t *testing.T) {
+	t.Setenv("JWT_ACCESS_TOKEN_EXPIRED", "30")
+	t.Setenv("JWT_ACCESS_TOKEN_EXPIRED_TYPE", "days")
+	t.Setenv("JWT_REFRESH_TOKEN_EXPIRED", "1")
+	t.Setenv("JWT_REFRESH_TOKEN_EXPIRED_TYPE", "days")
+
+	signed := signWithNewJwt(t)
+	if got := signed.AccessExpiredAt.Sub(time.Now()); got > 25*time.Hour {
+		t.Fatalf("access must not outlive refresh, got %s", got)
+	}
+}
+
+func signWithNewJwt(t *testing.T) *token_generator.SignedToken {
+	t.Helper()
+
+	helper := token_generator.NewJwt(AccessToken, RefreshToken, SignMethod)
+	helper, err := helper.SetClaim(token_generator.UserDetails{ID: "1", Username: "env-test"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	signed, err := helper.SignClaims()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return signed
+}

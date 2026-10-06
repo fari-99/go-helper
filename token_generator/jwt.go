@@ -4,6 +4,9 @@ import (
 	_ "crypto"
 	"fmt"
 	"net/http"
+	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -71,7 +74,54 @@ func NewJwt(accessSecret, refreshSecret, signedMethod string) *BaseJwt {
 		allowedRoles:       []string{adminRole},
 	}
 
+	base.loadExpiredFromEnv()
+
 	return &base
+}
+
+// loadExpiredFromEnv overrides the built-in expiry defaults with
+// JWT_ACCESS_TOKEN_EXPIRED / JWT_ACCESS_TOKEN_EXPIRED_TYPE and
+// JWT_REFRESH_TOKEN_EXPIRED / JWT_REFRESH_TOKEN_EXPIRED_TYPE (type: days, hours, minutes, seconds).
+// Anything missing or invalid keeps the built-in default, and so does the whole
+// override if access would outlive refresh. SetExpired still wins when called.
+func (base *BaseJwt) loadExpiredFromEnv() {
+	expiredAccess, accessType := base.expiredAccess, base.expiredAccessType
+	expiredRefresh, refreshType := base.expiredRefresh, base.expiredRefreshType
+
+	if value, err := strconv.Atoi(os.Getenv("JWT_ACCESS_TOKEN_EXPIRED")); err == nil && value > 0 {
+		expiredAccess = value
+	}
+	if duration, ok := expiredTypeToDuration(os.Getenv("JWT_ACCESS_TOKEN_EXPIRED_TYPE")); ok {
+		accessType = duration
+	}
+	if value, err := strconv.Atoi(os.Getenv("JWT_REFRESH_TOKEN_EXPIRED")); err == nil && value > 0 {
+		expiredRefresh = value
+	}
+	if duration, ok := expiredTypeToDuration(os.Getenv("JWT_REFRESH_TOKEN_EXPIRED_TYPE")); ok {
+		refreshType = duration
+	}
+
+	if time.Duration(expiredAccess)*accessType > time.Duration(expiredRefresh)*refreshType {
+		return
+	}
+
+	base.expiredAccess, base.expiredAccessType = expiredAccess, accessType
+	base.expiredRefresh, base.expiredRefreshType = expiredRefresh, refreshType
+}
+
+func expiredTypeToDuration(expiredType string) (time.Duration, bool) {
+	switch strings.ToLower(strings.TrimSpace(expiredType)) {
+	case "days", "day":
+		return time.Hour * 24, true
+	case "hours", "hour":
+		return time.Hour, true
+	case "minutes", "minute":
+		return time.Minute, true
+	case "seconds", "second":
+		return time.Second, true
+	}
+
+	return 0, false
 }
 
 func (base *BaseJwt) SetCtx(ctx *http.Request) *BaseJwt {
